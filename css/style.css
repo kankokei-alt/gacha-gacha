@@ -493,3 +493,21 @@ a.btn { text-decoration: none; text-align: center; display: inline-block; }
 .ticket-big small { color: var(--muted); }
 .gaman-card h3 { text-align: center; }
 .gaman-btn { margin-top: 12px; padding: 22px 10px; font-size: 1.4rem; border-radius: 22px; }
+
+/* ================= v3: オリジナルキャラのイラスト ================= */
+.emo svg.art { width: 1.2em; height: 1.2em; display: block; overflow: visible; }
+.pick-icon .emo svg.art { width: 34px; height: 34px; margin: 0 auto; }
+.res-emo .emo svg.art { width: 150px; height: 150px; margin: 0 auto; }
+.res-emo { margin: 2px 0 0; }
+.zk-item .emo svg.art { width: 46px; height: 46px; }
+.zk-item { font-size: 1rem; }
+.zk-grid { grid-template-columns: repeat(4, 1fr); }
+.zk-no { position: absolute; top: 2px; left: 5px; font-size: .55rem; font-weight: 800; color: var(--muted); }
+.zk-desc { margin: 0 0 4px; }
+.lu-emo .emo svg.art { width: 30px; height: 30px; }
+.lu.unowned .lu-emo .emo, .zk-item.unowned .emo { filter: brightness(0) opacity(.18); }
+.peek .emo svg.art { width: 110px; height: 110px; }
+.peek { margin-top: -50px; }
+.res-no { margin: 4px 0 0; font-size: .78rem; color: var(--muted); font-weight: 800; }
+.tbadge { display: inline-block; margin-left: 3px; padding: 1px 7px; border-radius: 999px; background: var(--t); color: #fff; font-size: .66rem; }
+.res-card h3 { margin-top: 2px; }

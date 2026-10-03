@@ -41,7 +41,7 @@
       admin: null,     // { pub, name, fp, pairedAt }
       login: { last: null, streak: 0, best: 0, total: 0 },
       achievements: {},
-      selected: 'sweets',
+      selected: MACHINES[0].id,
       settings: { sound: true, vib: true },
       tipDismissed: false,
       createdAt: new Date().toISOString(),
@@ -78,6 +78,7 @@
   }
 
   let S = load();
+  if (!MACHINES.some((m) => m.id === S.selected)) S.selected = MACHINES[0].id;
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 容量不足など */ }
   }
@@ -194,7 +195,10 @@
     }
   }
 
-  const emo = (it, cls = '') => `<span class="emo ${it.fx ? `fx-${it.fx}` : ''} ${cls}">${it.emoji}</span>`;
+  // キャラのイラスト（js/art.js）
+  const emo = (it, cls = '') => `<span class="emo ${cls}">${Art.render(it)}</span>`;
+  const noLabel = (it) => `No.${String(it.no).padStart(it.machine === 'pachimon' ? 3 : 2, '0')}`;
+  const typeBadges = (it) => it.types.map((t) => `<span class="tbadge" style="--t:${TYPES[t] || '#999'}">${t}</span>`).join('');
 
   /* ---------------- モーダル ---------------- */
 
@@ -590,7 +594,7 @@
     $('#dropCap').classList.add('hidden');
     if (p.kind === 'prize') {
       const prize = PRIZE_BY_ID[p.prize];
-      showCapsule({ emoji: prize.emoji, level: 'PRIZE', cap: p.cap }, () => {
+      showCapsule({ peek: prize.emoji, level: 'PRIZE', cap: p.cap }, () => {
         S.pending = null;
         const rec = { id: Link.uid(), prize: prize.id, won: new Date().toISOString(), usedAt: null };
         S.prizes.unshift(rec);
@@ -604,7 +608,7 @@
     }
     const it = ITEMS[p.item];
     if (!it) { S.pending = null; save(); setPhase('idle'); renderGacha(); return; }
-    showCapsule({ emoji: it.emoji, level: it.rarity, cap: p.cap }, () => {
+    showCapsule({ peek: emo(it), level: it.rarity, cap: p.cap }, () => {
       S.pending = null;
       const res = grantItem(it);
       setPhase('idle');
@@ -629,7 +633,7 @@
   }
 
   // level: N/R/SR/SE/PRIZE（演出の強さ）
-  function showCapsule({ emoji, level: lvl, cap: capColor }, onReveal) {
+  function showCapsule({ peek, level: lvl, cap: capColor }, onReveal) {
     overlayOpen = true;
     const cap = $('#bigCap');
     const big = lvl === 'SR' || lvl === 'SE' || lvl === 'PRIZE';
@@ -637,7 +641,7 @@
     cap.className = 'big-cap';
     cap.style.setProperty('--cap', capColor === 'gold' ? 'linear-gradient(90deg,#ffe680,#ffbf00,#ffdf6b)'
       : capColor === 'rainbow' ? 'linear-gradient(90deg,#ff6b6b,#ffd166,#06d6a0,#4cc9f0,#b388ff)' : capColor);
-    $('#peek').innerHTML = emoji;
+    $('#peek').innerHTML = peek;
     $('#rays').className = 'rays';
     $('#result').classList.add('hidden');
     $('#openHint').classList.remove('hidden');
@@ -697,11 +701,12 @@
       <div class="res-card r-${r}">
         <span class="badge r-${r}">${RARITY[r].label}</span>
         <div class="res-emo">${emo(it)}</div>
-        ${isNew ? '<div class="new-badge">NEW!</div>' : '<div class="dup">もう持ってるマスコット</div>'}
+        ${isNew ? '<div class="new-badge">NEW!</div>' : '<div class="dup">もう持ってるキャラ</div>'}
+        <p class="res-no">${esc(m.name)} ${noLabel(it)} ${typeBadges(it)}</p>
         <h3>${esc(it.name)}</h3>
         <p class="desc">${esc(it.desc)}</p>
         ${pity ? '<p class="pity-msg">🛟 天井ボーナスで NEW 確定！</p>' : ''}
-        <p class="muted small">今回はご褒美ははずれ… ずかん ${esc(m.name)} ${ownedIn(S, m.items)}/${m.items.length}</p>
+        <p class="muted small">今回はご褒美ははずれ… ずかん ${ownedIn(S, m.items)}/${m.items.length}</p>
       </div>${resultButtons()}`;
     $('#result').classList.remove('hidden');
     bindResult();
@@ -759,7 +764,7 @@
     $('#machinePicker').innerHTML = MACHINES.map((x) => {
       const lock = !isUnlocked(x);
       return `<button class="pick ${x.id === m.id ? 'active' : ''} ${lock ? 'locked' : ''}" data-id="${x.id}" style="--c:${x.color}">
-        <span class="pick-icon">${lock ? '🔒' : x.icon}</span>
+        <span class="pick-icon">${lock ? '🔒' : emo(ITEMS[`${x.id}.${x.sign}`])}</span>
         <span class="pick-name">${lock ? `Lv.${x.unlock}で解放` : esc(x.name)}</span>
         <span class="pick-prog">${lock ? '' : `${ownedIn(S, x.items)}/${x.items.length}`}</span>
       </button>`;
@@ -793,13 +798,13 @@
       <div class="lineup-grid">${PRIZES.map((p) => `<div class="lu">
           <span class="lu-emo">${p.emoji}</span><span class="lu-name">${esc(p.name)}</span>
           <span class="badge prize">当たり</span><span class="lu-p">${(p.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%</span></div>`).join('')}</div>
-      <p class="lu-head">🧸 はずれのときのマスコット（ずかんに登録）</p>
+      <p class="lu-head">🧸 はずれのときのキャラ（ずかんに登録）</p>
       <div class="lineup-grid">${m.items.map((it) => {
         const p = ((RARITY[it.rarity].weight / totalW) * missRate * 100).toFixed(1);
         const show = it.rarity !== 'SE' || owned(it);
         return `<div class="lu ${owned(it) ? '' : 'unowned'}">
           <span class="lu-emo">${show ? emo(it) : '❔'}</span>
-          <span class="lu-name">${show ? esc(it.name) : 'シークレット'}</span>
+          <span class="lu-name">${show ? esc(it.name) : '？？？'}</span>
           <span class="badge r-${it.rarity}">${RARITY[it.rarity].short}</span>
           <span class="lu-p">${p}%</span></div>`;
       }).join('')}</div>`;
@@ -1133,13 +1138,14 @@
       const g = ownedIn(S, m.items);
       return `<div class="zk-sec" style="--c:${m.color}">
         <h3>${m.icon} ${esc(m.name)} <small>${g}/${m.items.length}</small></h3>
+        <p class="muted small zk-desc">${esc(m.desc)}</p>
         <div class="bar"><i style="width:${(g / m.items.length) * 100}%"></i></div>
         <div class="zk-grid">${m.items.map((it) => {
           const n = S.collection[it.id] || 0;
           const secretHidden = !n && it.rarity === 'SE';
           return `<button class="zk-item r-${it.rarity} ${n ? '' : 'unowned'}" data-id="${it.id}">
             ${secretHidden ? '<span class="emo">❔</span>' : emo(it)}
-            ${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
+            <span class="zk-no">${it.no}</span>${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
           </button>`;
         }).join('')}</div></div>`;
     }).join('');
@@ -1154,9 +1160,9 @@
         ${next ? `<p class="muted small">Lv.${next.unlock} で「${esc(next.name)}」が登場！</p>` : ''}
       </div>
       <div class="card hero">
-        <div class="hero-row"><div><small>マスコットずかん</small><div class="hero-num">${got}<small> / ${all.length}</small></div></div>
+        <div class="hero-row"><div><small>キャラずかん</small><div class="hero-num">${got}<small> / ${all.length}</small></div></div>
         <div class="ring" style="--p:${(got / all.length) * 100}"><span>${Math.floor((got / all.length) * 100)}%</span></div></div>
-        <p class="muted small">はずれの時に出るマスコットがここにたまります。1台コンプで 🎫3枚！</p>
+        <p class="muted small">はずれの時に出るキャラがここにたまります。コンプすると ${MACHINES.map((m) => `${esc(m.name)} 🎫${m.compReward}枚`).join('・')}！</p>
       </div>
       ${html}
       <div class="card">
@@ -1179,6 +1185,7 @@
       <div class="detail r-${it.rarity}">
         <span class="badge r-${it.rarity}">${RARITY[it.rarity].label}</span>
         <div class="res-emo ${n ? '' : 'sil'}">${hidden ? '<span class="emo">❔</span>' : emo(it)}</div>
+        <p class="res-no">${esc(machine(it.machine).name)} ${noLabel(it)} ${hidden ? '' : typeBadges(it)}</p>
         <h3>${hidden ? '？？？' : esc(it.name)}</h3>
         ${n ? `<p class="desc">${esc(it.desc)}</p>
           <p class="muted">所持数 ${n}こ ・ はじめて出会った日 ${S.obtainedAt[it.id] ? fmtDate(S.obtainedAt[it.id]) : '-'}</p>`
@@ -1206,8 +1213,8 @@
         <li>🎫 ガチャ券1枚で1回まわせる。毎日ログインでもらえる</li>
         <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 🎫${GAMAN_TICKETS}枚</li>
         <li>🎁 まわすと、たまに<b>本物のご褒美チケット</b>が当たる！「ごほうび」タブから使える</li>
-        <li>🧸 はずれのときはマスコットが出て、ずかんにたまる</li>
-        <li>🛟 マスコットが${PITY}回つづけてかぶると、次は必ずNEW</li>
+        <li>🧸 はずれのときはキャラ（パチモン・家族）が出て、ずかんにたまる</li>
+        <li>🛟 同じガチャで${PITY}回つづけてかぶると、次は必ずNEW</li>
       </ul>
       <h4>💾 バックアップ</h4>
       <p class="muted small">データはこのスマホの中だけにあります。機種変更のときは「コピー」した文字を保存して、新しいスマホで「読みこむ」。</p>

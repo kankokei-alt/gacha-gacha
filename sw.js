@@ -1,7 +1,7 @@
 /* オフラインでも遊べるようにアプリ本体をキャッシュする */
-const CACHE = 'pocket-gacha-v4';
+const CACHE = 'pocket-gacha-v5';
 const ASSETS = [
-  './', 'index.html', 'css/style.css', 'js/data.js', 'js/link.js', 'js/app.js', 'admin.html', 'js/admin.js', 'manifest.webmanifest',
+  './', 'index.html', 'css/style.css', 'js/data.js', 'js/art.js', 'js/link.js', 'js/app.js', 'admin.html', 'js/admin.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 
