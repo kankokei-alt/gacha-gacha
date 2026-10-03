@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ff7eb0">
+  <meta name="description" content="リアルのガチャガチャをがまんした分だけ、心ゆくまで回せるおうちガチャ">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ぽけっとガチャ">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <title>ぽけっとガチャ</title>
+</head>
+<body>
+  <header class="topbar">
+    <button class="lv" id="lvBtn" aria-label="レベル">
+      <span class="lv-row"><b id="lvNum">Lv.1</b><span class="lv-title" id="lvTitle"></span></span>
+      <span class="xpbar"><i id="xpFill"></i></span>
+    </button>
+    <div class="wallet">
+      <span class="pill" title="コイン">🪙<b id="coins">0</b></span>
+      <span class="pill" title="無料チケット">🎫<b id="tickets">0</b></span>
+      <span class="pill" title="かけら">💎<b id="shards">0</b></span>
+    </div>
+    <button class="icon-btn" id="settingsBtn" aria-label="設定">⚙️</button>
+  </header>
+
+  <main>
+    <section id="tab-gacha" class="tab active">
+      <div id="installTip"></div>
+      <div class="picker" id="machinePicker"></div>
+      <div class="stage">
+        <div class="featured hidden" id="featuredBadge">🎊 本日のおすすめ 20%OFF</div>
+        <h2 class="machine-name" id="machineName"></h2>
+        <div class="machine-wrap" id="machineWrap"></div>
+        <p class="hint" id="turnHint"></p>
+      </div>
+      <div class="machine-info" id="machineInfo"></div>
+      <div class="pull-buttons">
+        <button class="btn primary big" id="btnCoin"></button>
+        <button class="btn ticket big" id="btnTicket"></button>
+      </div>
+      <details class="lineup" id="lineup"></details>
+    </section>
+
+    <section id="tab-zukan" class="tab"></section>
+    <section id="tab-save" class="tab"></section>
+    <section id="tab-mission" class="tab"></section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-tab="gacha" class="active"><span>🎰</span>ガチャ</button>
+    <button data-tab="zukan"><span>📖</span>ずかん</button>
+    <button data-tab="save"><span>🐷</span>がまん貯金</button>
+    <button data-tab="mission"><span>🏅</span>ミッション<i class="dot hidden" id="missionDot"></i></button>
+  </nav>
+
+  <div id="toasts"></div>
+  <div id="modal" class="overlay hidden"><div class="sheet" id="modalBody"></div></div>
+
+  <div id="openOverlay" class="overlay dark hidden">
+    <div class="open-stage" id="openStage">
+      <div class="rays" id="rays"></div>
+      <div class="big-cap" id="bigCap">
+        <div class="cap-top"></div>
+        <div class="cap-bottom"><span class="peek" id="peek"></span></div>
+        <div class="cap-band"></div>
+      </div>
+      <p class="open-hint" id="openHint">タップしてあけよう！</p>
+      <div class="result hidden" id="result"></div>
+    </div>
+  </div>
+  <div id="confetti"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
