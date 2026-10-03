@@ -1,20 +1,43 @@
 /* ぽけっとガチャ — ゲームデータ定義 */
 'use strict';
 
+/* ================================================================
+ * リアルご褒美（当たり）の設定
+ *   rate  … 1回まわしたときに当たる確率（0.08 = 8%）
+ *   value … 1枚あたりの金額（円）。月の上限計算に使う
+ * 1か月に60回まわすと、平均 約3,000円 になるように調整しています。
+ * ================================================================ */
+const PRIZES = [
+  { id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 300, rate: 0.08, desc: 'コンビニスイーツをひとつ' },
+  { id: 'cafe', name: 'カフェチケット', emoji: '☕', value: 800, rate: 0.02, desc: 'カフェでケーキセット' },
+  { id: 'sushi', name: 'お寿司チケット', emoji: '🍣', value: 4000, rate: 0.0025, desc: 'お寿司を食べに行こう' },
+];
+// 1か月に当たるご褒美の合計の上限（円）。超える当たりはその月は出ない
+const MONTHLY_CAP = 5000;
+// 我慢100円あたりにもらえるガチャ券の枚数（300円の我慢 → 3枚）
+const TICKETS_PER_100YEN = 1;
+// ログインボーナス（7日でひとまわり）
+const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];
+// レベルアップでもらえるガチャ券
+const LEVELUP_TICKETS = 1;
+
+/* ================================================================
+ * マスコット（はずれの時に出て、ずかんに登録される）
+ * ================================================================ */
 const RARITY = {
-  N:  { label: 'ノーマル',     short: 'N',   weight: 100, shards: 1,  cost: 10,  xp: 0  },
-  R:  { label: 'レア',         short: 'R',   weight: 45,  shards: 3,  cost: 30,  xp: 5  },
-  SR: { label: 'スーパーレア', short: 'SR',  weight: 15,  shards: 10, cost: 80,  xp: 20 },
-  SE: { label: 'シークレット', short: '???', weight: 5,   shards: 30, cost: 200, xp: 50 },
+  N:  { label: 'ノーマル',     short: 'N',   weight: 100, xp: 0  },
+  R:  { label: 'レア',         short: 'R',   weight: 45,  xp: 5  },
+  SR: { label: 'スーパーレア', short: 'SR',  weight: 15,  xp: 20 },
+  SE: { label: 'シークレット', short: '???', weight: 5,   xp: 50 },
 };
 
-// 同じアイテムが連続でかぶった時の救済: PITY 回目は未入手アイテムが確定
+// マスコットが PITY 回目まで続けてかぶると、次は未入手が確定
 const PITY = 10;
 
 // [key, 名前, 絵文字, レア度, ひとこと, 特殊効果(gold|rainbow)]
 const MACHINES = [
   {
-    id: 'sweets', name: 'ぷちスイーツマスコット', icon: '🧁', price: 200, color: '#ff8fb8', unlock: 1,
+    id: 'sweets', name: 'ぷちスイーツマスコット', icon: '🧁', color: '#ff8fb8', unlock: 1,
     items: [
       ['shortcake', 'ショートケーキ', '🍰', 'N', 'いちごは最後に食べる派？'],
       ['pudding', 'とろけるプリン', '🍮', 'N', 'ぷるんとゆれるカラメル色。'],
@@ -29,7 +52,7 @@ const MACHINES = [
     ],
   },
   {
-    id: 'cats', name: 'ねこねこフェイス', icon: '😺', price: 300, color: '#ffb35c', unlock: 1,
+    id: 'cats', name: 'ねこねこフェイス', icon: '😺', color: '#ffb35c', unlock: 1,
     items: [
       ['smile', 'にこにこねこ', '😺', 'N', 'きょうもごきげん。'],
       ['laugh', 'けらけらねこ', '😸', 'N', 'ツボにはいったらとまらない。'],
@@ -44,7 +67,7 @@ const MACHINES = [
     ],
   },
   {
-    id: 'sushi', name: 'まるごとおすしコレクション', icon: '🍣', price: 300, color: '#ff6b6b', unlock: 1,
+    id: 'sushi', name: 'まるごとおすしコレクション', icon: '🍣', color: '#ff6b6b', unlock: 1,
     items: [
       ['maguro', 'まぐろ', '🐟', 'N', 'おすしの王様。赤身がいちばん。'],
       ['ebi', 'えび', '🦐', 'N', 'ぷりっぷり。しっぽまで食べる？'],
@@ -59,7 +82,7 @@ const MACHINES = [
     ],
   },
   {
-    id: 'animals', name: 'どうぶつおひるね', icon: '🐼', price: 400, color: '#78c98a', unlock: 3,
+    id: 'animals', name: 'どうぶつおひるね', icon: '🐼', color: '#78c98a', unlock: 3,
     items: [
       ['dog', 'いぬ', '🐶', 'N', 'しっぽをふってお出むかえ。'],
       ['rabbit', 'うさぎ', '🐰', 'N', 'おみみをたたんでおやすみ。'],
@@ -74,7 +97,7 @@ const MACHINES = [
     ],
   },
   {
-    id: 'wa', name: 'ほっこり和雑貨', icon: '🎐', price: 400, color: '#3fb7a6', unlock: 5,
+    id: 'wa', name: 'ほっこり和雑貨', icon: '🎐', color: '#3fb7a6', unlock: 5,
     items: [
       ['furin', 'ふうりん', '🎐', 'N', 'ちりん、とすずしい音。'],
       ['chochin', 'ちょうちん', '🏮', 'N', 'おまつりの夜をてらす。'],
@@ -89,7 +112,7 @@ const MACHINES = [
     ],
   },
   {
-    id: 'space', name: 'きらきらうちゅう', icon: '🪐', price: 500, color: '#7480e0', unlock: 8,
+    id: 'space', name: 'きらきらうちゅう', icon: '🪐', color: '#7480e0', unlock: 8,
     items: [
       ['moon', 'みかづき', '🌙', 'N', 'こよいもきれい。'],
       ['star', 'おほしさま', '⭐', 'N', 'いちばん星、みーつけた。'],
@@ -113,22 +136,9 @@ MACHINES.forEach((m) => {
     return it;
   });
 });
+const PRIZE_BY_ID = Object.fromEntries(PRIZES.map((p) => [p.id, p]));
 
 const CAPSULE_COLORS = ['#ff6b8b', '#ffa94d', '#ffe066', '#7ed98a', '#5cc8ff', '#a98bff', '#ff8fd1', '#4dd4c6'];
-
-// ログインボーナス (7日でひとまわり)。毎日さらに無料チケットが1枚もらえる
-const LOGIN_REWARDS = [
-  { coins: 100 }, { coins: 150 }, { coins: 200 }, { coins: 250 },
-  { coins: 300 }, { coins: 400 }, { coins: 500, tickets: 2 },
-];
-
-const DAILY_MISSIONS = [
-  { id: 'pull3', icon: '🎰', label: 'ガチャを3回まわす', key: 'pulls', goal: 3, reward: 100 },
-  { id: 'save1', icon: '💪', label: 'リアルガチャを1回がまんする', key: 'saves', goal: 1, reward: 150 },
-  { id: 'zukan', icon: '📖', label: 'ずかんをながめる', key: 'opened', goal: 1, reward: 50 },
-  { id: 'new1', icon: '✨', label: '新しいアイテムを1つゲット', key: 'newItems', goal: 1, reward: 100 },
-];
-const ALL_CLEAR_BONUS = { coins: 200, tickets: 1 };
 
 const TITLES = [
   [1, 'ガチャ見習い'], [3, 'カプセルあつめ'], [5, 'ガチャ通'], [8, 'まわし上手'],
@@ -136,43 +146,43 @@ const TITLES = [
 ];
 
 const PRAISES = [
-  'えらい！その我慢、ちゃんと貯まってるよ✨',
-  'ナイス我慢！未来の自分がよろこんでる💕',
-  'かっこいい…！その分ここで思いっきりまわそう🎰',
+  'えらい！その我慢、ちゃんと届けるね✨',
+  'ナイス我慢！認定されたらいっぱい回そう💕',
+  'かっこいい…！本物より当たるのはこっちだよ🎰',
   'がまんできたあなたに拍手👏',
-  'すごい！ご褒美にまた一歩ちかづいた🎁',
-  '本物は家計にやさしく、こっちは心ゆくまで🪙',
   'その意志のつよさ、SSR級です🌟',
 ];
 
-function savedTotal(s) { return s.savings.reduce((a, x) => a + x.amount, 0); }
+function gamanTotal(s) { return s.gaman.filter((g) => g.status === 'ok' || g.status === 'legacy').reduce((a, g) => a + g.amount, 0); }
+function gamanCount(s) { return s.gaman.filter((g) => g.status === 'ok' || g.status === 'legacy').length; }
 function ownedIn(s, items) { return items.filter((it) => (s.collection[it.id] || 0) > 0).length; }
 function allItems() { return Object.values(ITEMS); }
 
+// reward はガチャ券の枚数
 const ACHIEVEMENTS = [
-  { id: 'pull1', icon: '🎉', name: 'はじめの一回', desc: 'ガチャを1回まわす', reward: 100, test: (s) => s.totalPulls >= 1 },
-  { id: 'pull10', icon: '🎰', name: 'ガチャ好き', desc: 'ガチャを10回まわす', reward: 200, test: (s) => s.totalPulls >= 10 },
-  { id: 'pull50', icon: '🎡', name: 'まわし上手', desc: 'ガチャを50回まわす', reward: 500, test: (s) => s.totalPulls >= 50 },
-  { id: 'pull100', icon: '🎠', name: 'ガチャ100回', desc: 'ガチャを100回まわす', reward: 1000, test: (s) => s.totalPulls >= 100 },
-  { id: 'pull300', icon: '🏰', name: 'ガチャの申し子', desc: 'ガチャを300回まわす', reward: 2000, test: (s) => s.totalPulls >= 300 },
-  { id: 'r1', icon: '💙', name: 'レアもの', desc: 'レアをはじめて手に入れる', reward: 100, test: (s) => ownedIn(s, allItems().filter((i) => i.rarity === 'R')) >= 1 },
-  { id: 'sr1', icon: '🌟', name: 'キラキラ発見', desc: 'スーパーレアをはじめて手に入れる', reward: 300, test: (s) => ownedIn(s, allItems().filter((i) => i.rarity === 'SR')) >= 1 },
-  { id: 'se1', icon: '🔮', name: 'ひみつのとびら', desc: 'シークレットをはじめて手に入れる', reward: 1000, test: (s) => ownedIn(s, allItems().filter((i) => i.rarity === 'SE')) >= 1 },
-  { id: 'dup5', icon: '🔁', name: 'かぶりもまた楽し', desc: '同じアイテムを5こあつめる', reward: 300, test: (s) => Object.values(s.collection).some((c) => c >= 5) },
-  { id: 'kind30', icon: '📚', name: 'コレクター', desc: 'ずかんを30種類うめる', reward: 1500, test: (s) => ownedIn(s, allItems()) >= 30 },
+  { id: 'pull1', icon: '🎉', name: 'はじめの一回', desc: 'ガチャを1回まわす', reward: 1, test: (s) => s.totalPulls >= 1 },
+  { id: 'pull10', icon: '🎰', name: 'ガチャ好き', desc: 'ガチャを10回まわす', reward: 1, test: (s) => s.totalPulls >= 10 },
+  { id: 'pull50', icon: '🎡', name: 'まわし上手', desc: 'ガチャを50回まわす', reward: 2, test: (s) => s.totalPulls >= 50 },
+  { id: 'pull100', icon: '🎠', name: 'ガチャ100回', desc: 'ガチャを100回まわす', reward: 3, test: (s) => s.totalPulls >= 100 },
+  { id: 'pull300', icon: '🏰', name: 'ガチャの申し子', desc: 'ガチャを300回まわす', reward: 5, test: (s) => s.totalPulls >= 300 },
+  { id: 'prize1', icon: '🎁', name: 'はじめての当たり', desc: 'リアルご褒美をはじめて当てる', reward: 1, test: (s) => s.prizes.length >= 1 },
+  { id: 'prizeCafe', icon: '☕', name: 'カフェタイム', desc: 'カフェチケットを当てる', reward: 1, test: (s) => s.prizes.some((p) => p.prize === 'cafe') },
+  { id: 'prizeSushi', icon: '🍣', name: 'お寿司だ！', desc: 'お寿司チケットを当てる', reward: 2, test: (s) => s.prizes.some((p) => p.prize === 'sushi') },
+  { id: 'sr1', icon: '🌟', name: 'キラキラ発見', desc: 'スーパーレアのマスコットを手に入れる', reward: 1, test: (s) => ownedIn(s, allItems().filter((i) => i.rarity === 'SR')) >= 1 },
+  { id: 'se1', icon: '🔮', name: 'ひみつのとびら', desc: 'シークレットのマスコットを手に入れる', reward: 3, test: (s) => ownedIn(s, allItems().filter((i) => i.rarity === 'SE')) >= 1 },
+  { id: 'dup5', icon: '🔁', name: 'かぶりもまた楽し', desc: '同じマスコットを5こあつめる', reward: 1, test: (s) => Object.values(s.collection).some((c) => c >= 5) },
+  { id: 'kind30', icon: '📚', name: 'コレクター', desc: 'ずかんを30種類うめる', reward: 3, test: (s) => ownedIn(s, allItems()) >= 30 },
   ...MACHINES.map((m) => ({
-    id: `comp_${m.id}`, icon: m.icon, name: `${m.name} コンプ`, desc: `${m.name}を全種類あつめる`, reward: 1000,
+    id: `comp_${m.id}`, icon: m.icon, name: `${m.name} コンプ`, desc: `${m.name}を全種類あつめる`, reward: 3,
     test: (s) => ownedIn(s, m.items) === m.items.length,
   })),
-  { id: 'compAll', icon: '👑', name: '完全制覇', desc: 'すべてのアイテムをあつめる', reward: 5000, test: (s) => ownedIn(s, allItems()) === allItems().length },
-  { id: 'save1', icon: '💪', name: 'はじめての我慢', desc: 'リアルガチャを1回がまんする', reward: 100, test: (s) => s.savings.length >= 1 },
-  { id: 'save10', icon: '🧘', name: 'がまんの達人', desc: 'リアルガチャを10回がまんする', reward: 500, test: (s) => s.savings.length >= 10 },
-  { id: 'yen1000', icon: '🐷', name: '我慢貯金 1,000円', desc: '我慢貯金が1,000円になる', reward: 300, test: (s) => savedTotal(s) >= 1000 },
-  { id: 'yen5000', icon: '💰', name: '我慢貯金 5,000円', desc: '我慢貯金が5,000円になる', reward: 1000, test: (s) => savedTotal(s) >= 5000 },
-  { id: 'yen10000', icon: '💎', name: '我慢貯金 1万円', desc: '我慢貯金が10,000円になる', reward: 2000, test: (s) => savedTotal(s) >= 10000 },
-  { id: 'yen30000', icon: '🏦', name: '我慢貯金 3万円', desc: '我慢貯金が30,000円になる', reward: 5000, test: (s) => savedTotal(s) >= 30000 },
-  { id: 'goal1', icon: '🏆', name: 'ご褒美ゲット', desc: 'ご褒美目標を達成する', reward: 1000, test: (s) => s.goalsDone.length >= 1 || !!(s.goal && s.goal.doneAt) },
-  { id: 'streak3', icon: '🔥', name: '3日連続', desc: '3日連続でログイン', reward: 200, test: (s) => s.login.best >= 3 },
-  { id: 'streak7', icon: '📅', name: '1週間連続', desc: '7日連続でログイン', reward: 700, test: (s) => s.login.best >= 7 },
-  { id: 'streak30', icon: '🗓️', name: '1か月連続', desc: '30日連続でログイン', reward: 3000, test: (s) => s.login.best >= 30 },
+  { id: 'compAll', icon: '👑', name: '完全制覇', desc: 'すべてのマスコットをあつめる', reward: 10, test: (s) => ownedIn(s, allItems()) === allItems().length },
+  { id: 'gaman1', icon: '💪', name: 'はじめての我慢', desc: '我慢をはじめて認定してもらう', reward: 2, test: (s) => gamanCount(s) >= 1 },
+  { id: 'gaman10', icon: '🧘', name: 'がまんの達人', desc: '我慢を10回認定してもらう', reward: 3, test: (s) => gamanCount(s) >= 10 },
+  { id: 'yen1000', icon: '🐷', name: '我慢 1,000円', desc: '我慢した金額が1,000円になる', reward: 2, test: (s) => gamanTotal(s) >= 1000 },
+  { id: 'yen5000', icon: '💰', name: '我慢 5,000円', desc: '我慢した金額が5,000円になる', reward: 3, test: (s) => gamanTotal(s) >= 5000 },
+  { id: 'yen10000', icon: '💎', name: '我慢 1万円', desc: '我慢した金額が10,000円になる', reward: 5, test: (s) => gamanTotal(s) >= 10000 },
+  { id: 'streak3', icon: '🔥', name: '3日連続', desc: '3日連続でログイン', reward: 1, test: (s) => s.login.best >= 3 },
+  { id: 'streak7', icon: '📅', name: '1週間連続', desc: '7日連続でログイン', reward: 2, test: (s) => s.login.best >= 7 },
+  { id: 'streak30', icon: '🗓️', name: '1か月連続', desc: '30日連続でログイン', reward: 5, test: (s) => s.login.best >= 30 },
 ];

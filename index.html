@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#ff7eb0">
-  <meta name="description" content="リアルのガチャガチャをがまんした分だけ、心ゆくまで回せるおうちガチャ">
+  <meta name="description" content="本物のガチャをがまんすると回せる、リアルご褒美が当たるおうちガチャ">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25,9 +25,7 @@
       <span class="xpbar"><i id="xpFill"></i></span>
     </button>
     <div class="wallet">
-      <span class="pill" title="コイン">🪙<b id="coins">0</b></span>
-      <span class="pill" title="無料チケット">🎫<b id="tickets">0</b></span>
-      <span class="pill" title="かけら">💎<b id="shards">0</b></span>
+      <span class="pill" title="ガチャ券">🎫 ガチャ券 <b id="tickets">0</b></span>
     </div>
     <button class="icon-btn" id="settingsBtn" aria-label="設定">⚙️</button>
   </header>
@@ -36,30 +34,26 @@
     <section id="tab-gacha" class="tab active">
       <div id="installTip"></div>
       <div class="picker" id="machinePicker"></div>
+      <div class="prize-strip" id="prizeStrip"></div>
       <div class="stage">
-        <div class="featured hidden" id="featuredBadge">🎊 本日のおすすめ 20%OFF</div>
         <h2 class="machine-name" id="machineName"></h2>
         <div class="machine-wrap" id="machineWrap"></div>
         <p class="hint" id="turnHint"></p>
       </div>
-      <div class="machine-info" id="machineInfo"></div>
-      <div class="pull-buttons">
-        <button class="btn primary big" id="btnCoin"></button>
-        <button class="btn ticket big" id="btnTicket"></button>
-      </div>
+      <button class="btn primary big wide pull-btn" id="btnPull"></button>
       <details class="lineup" id="lineup"></details>
     </section>
 
+    <section id="tab-gaman" class="tab"></section>
+    <section id="tab-prize" class="tab"></section>
     <section id="tab-zukan" class="tab"></section>
-    <section id="tab-save" class="tab"></section>
-    <section id="tab-mission" class="tab"></section>
   </main>
 
   <nav class="tabbar">
     <button data-tab="gacha" class="active"><span>🎰</span>ガチャ</button>
+    <button data-tab="gaman"><span>💪</span>がまん<i class="dot hidden" id="gamanDot"></i></button>
+    <button data-tab="prize"><span>🎁</span>ごほうび<i class="dot hidden" id="prizeDot"></i></button>
     <button data-tab="zukan"><span>📖</span>ずかん</button>
-    <button data-tab="save"><span>🐷</span>がまん貯金</button>
-    <button data-tab="mission"><span>🏅</span>ミッション<i class="dot hidden" id="missionDot"></i></button>
   </nav>
 
   <div id="toasts"></div>
@@ -80,6 +74,7 @@
   <div id="confetti"></div>
 
   <script src="js/data.js"></script>
+  <script src="js/link.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
