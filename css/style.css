@@ -491,3 +491,5 @@ a.btn { text-decoration: none; text-align: center; display: inline-block; }
 .tb-emo { font-size: 3.4rem; animation: floaty 2.4s ease-in-out infinite; }
 .ticket-big b { display: block; font-size: 1.25rem; }
 .ticket-big small { color: var(--muted); }
+.gaman-card h3 { text-align: center; }
+.gaman-btn { margin-top: 12px; padding: 22px 10px; font-size: 1.4rem; border-radius: 22px; }

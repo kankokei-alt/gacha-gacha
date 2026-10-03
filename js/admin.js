@@ -10,7 +10,7 @@
   const monthOf = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth() + 1}`; };
   const thisMonth = () => monthOf(new Date().toISOString());
 
-  // log: { kind: ok|ng|gift|use, id, amount?, tickets?, note?, msg?, prize?, at, token? }
+  // log: { kind: ok|ng|gift|use, id, tickets?, note?, msg?, prize?, at, token? }
   function load() {
     try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; }
   }
@@ -83,7 +83,7 @@
     const month = A.log.filter((l) => monthOf(l.at) === m);
     const ok = month.filter((l) => l.kind === 'ok');
     const uses = month.filter((l) => l.kind === 'use');
-    const okYen = ok.reduce((a, l) => a + l.amount, 0);
+    const allOk = A.log.filter((l) => l.kind === 'ok').length;
     const useYen = uses.reduce((a, l) => a + (PRIZE_BY_ID[l.prize]?.value || 0), 0);
     const given = month.filter((l) => l.kind === 'ok' || l.kind === 'gift').reduce((a, l) => a + l.tickets, 0);
     const ev = PRIZES.reduce((a, p) => a + p.rate * p.value, 0);
@@ -92,12 +92,12 @@
       <div class="card">
         <h3>📊 今月のまとめ</h3>
         <div class="stats">
-          <div><small>認定したがまん</small><b>${ok.length}回 / ${fmt(okYen)}円</b></div>
-          <div><small>使われたご褒美</small><b>${uses.length}枚 / ${fmt(useYen)}円</b></div>
+          <div><small>認定したがまん</small><b>${ok.length}回</b></div>
+          <div><small>使われたご褒美</small><b>${uses.length}枚 / 約${fmt(useYen)}円</b></div>
           <div><small>わたしたガチャ券</small><b>🎫${given}枚</b></div>
-          <div><small>家計のトク</small><b>${okYen - useYen >= 0 ? '+' : ''}${fmt(okYen - useYen)}円</b></div>
+          <div><small>がまん（これまで）</small><b>${allOk}回</b></div>
         </div>
-        <p class="muted small">ガチャ1回あたりのご褒美の平均は約${Math.round(ev)}円。月の上限は ${fmt(MONTHLY_CAP)}円 です（${wife()}のアプリ側で制限）。</p>
+        <p class="muted small">ガチャ1回あたりのご褒美の平均は約${Math.round(ev)}円。月60回まわすと平均 約${fmt(Math.round(ev * 60))}円 です。</p>
       </div>
       <div class="card">
         <h3>🤝 ${esc(wife())}のアプリとつなぐ</h3>
@@ -121,6 +121,11 @@
         <h3>💾 カギのバックアップ</h3>
         <p class="muted small">機種変更のときに必要です。コピーした文字は人に見せないでください。</p>
         <button class="btn wide" id="bk">コピー</button>
+      </div>
+      <div class="card">
+        <h3>🗑️ 管理データを消す</h3>
+        <p class="muted small">カギ・りれきをこのスマホから消して、最初からやり直します（テストのやり直し用）。消したあとは、もう一度カギを作って${esc(wife())}のアプリとつなぎ直してください。</p>
+        <button class="btn wide danger-fill" id="resetAdmin">管理データを消す</button>
       </div>`;
 
     $('#pairBtn').addEventListener('click', showPair);
@@ -141,6 +146,14 @@
       const ok = await Link.copy(btoa(unescape(encodeURIComponent(JSON.stringify(A)))));
       toast(ok ? 'コピーしました' : 'コピーできませんでした');
     });
+    $('#resetAdmin').addEventListener('click', () => {
+      if (!confirm('カギとりれきを消しますか？')) return;
+      if (!confirm('消すと、これまでの認定リンクは作り直せません。本当に消しますか？')) return;
+      localStorage.removeItem(KEY);
+      A = null;
+      render();
+      window.scrollTo({ top: 0 });
+    });
     $('#main').querySelectorAll('[data-resend]').forEach((b) => b.addEventListener('click', () => {
       const l = A.log.find((x) => x.id === b.dataset.resend && x.token);
       showSendGrant(l.token, resultText(l));
@@ -148,14 +161,14 @@
   }
 
   function logLabel(l) {
-    if (l.kind === 'ok') return `✅ がまん認定 ${fmt(l.amount)}円 → 🎫${l.tickets}`;
-    if (l.kind === 'ng') return `🙅 見送り ${fmt(l.amount)}円`;
+    if (l.kind === 'ok') return `✅ がまん認定 → 🎫${l.tickets}${l.note ? `（${esc(l.note)}）` : ''}`;
+    if (l.kind === 'ng') return `🙅 見送り${l.note ? `（${esc(l.note)}）` : ''}`;
     if (l.kind === 'gift') return `🎁 プレゼント 🎫${l.tickets}`;
     if (l.kind === 'use') { const p = PRIZE_BY_ID[l.prize]; return `🎟️ ${p ? `${p.emoji} ${p.name}` : 'ご褒美'} 使用`; }
     return '';
   }
   function resultText(l) {
-    if (l.kind === 'ok') return `🎉 ${fmt(l.amount)}円のがまんを認定！ガチャ券${l.tickets}枚どうぞ${l.msg ? `\n💬 ${l.msg}` : ''}`;
+    if (l.kind === 'ok') return `🎉 がまん認定！ガチャ券${l.tickets}枚どうぞ${l.msg ? `\n💬 ${l.msg}` : ''}`;
     if (l.kind === 'ng') return `🙏 今回は見送りです${l.msg ? `\n💬 ${l.msg}` : ''}`;
     return `🎁 ガチャ券を${l.tickets}枚プレゼント！${l.msg ? `\n💬 ${l.msg}` : ''}`;
   }
@@ -195,11 +208,12 @@
       });
       return;
     }
-    let n = Math.floor(r.a / 100) * TICKETS_PER_100YEN;
+    let n = GAMAN_TICKETS;
     openModal(`
       <div class="req-card">
         <h3>💪 ${esc(wife())}からがまん申請</h3>
-        <div class="req-amt">${fmt(r.a)}円</div>
+        <div class="req-amt">💪</div>
+        <p><b>本物のガチャをがまんしました！</b>${r.a ? `<br><span class="muted small">${fmt(r.a)}円</span>` : ''}</p>
         <p>${r.n ? `📍 ${esc(r.n)}<br>` : ''}<span class="muted small">${fmtDate(r.d)}</span></p>
         <p class="small">わたすガチャ券</p>
         <div class="stepper"><button class="btn" data-s="-1">−</button><b id="reqN">🎫${n}</b><button class="btn" data-s="1">＋</button></div>
@@ -215,7 +229,7 @@
       const decide = async (k) => {
         const msg = root.querySelector('#reqMsg').value.trim();
         const token = await Link.signPack(A.priv, { k, id: r.id, t: k === 'ok' ? n : 0, m: msg });
-        const l = { kind: k, id: r.id, amount: r.a, tickets: k === 'ok' ? n : 0, note: r.n, msg, at: new Date().toISOString(), token };
+        const l = { kind: k, id: r.id, tickets: k === 'ok' ? n : 0, note: r.n, msg, at: new Date().toISOString(), token };
         A.log.unshift(l);
         save();
         showSendGrant(token, resultText(l));

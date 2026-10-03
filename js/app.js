@@ -36,7 +36,7 @@
       machineStats: {},
       pending: null,
       prizes: [],      // { id, prize, won, usedAt }
-      gaman: [],       // { id, amount, note, date, status: pending|ok|ng|legacy, tickets, msg, decidedAt }
+      gaman: [],       // { id, note, date, status: pending|ok|ng|legacy|gift, tickets, msg, decidedAt }
       gifts: {},       // 受けとったプレゼントのID
       admin: null,     // { pub, name, fp, pairedAt }
       login: { last: null, streak: 0, best: 0, total: 0 },
@@ -87,8 +87,6 @@
   const machine = (id) => MACHINES.find((m) => m.id === id) || MACHINES[0];
   const owned = (it) => (S.collection[it.id] || 0) > 0;
   const adminName = () => (S.admin && S.admin.name) || 'だんなさん';
-  const ticketsFor = (amount) => Math.floor(amount / 100) * TICKETS_PER_100YEN;
-  const monthPrizeTotal = () => S.prizes.filter((p) => monthOf(p.won) === thisMonth()).reduce((a, p) => a + (PRIZE_BY_ID[p.prize]?.value || 0), 0);
 
   /* ---------------- レベル ---------------- */
 
@@ -381,10 +379,9 @@
   const turn = { phase: 'idle', angle: 0, target: 0, dragging: false, lastA: 0, moved: 0, raf: 0 };
 
   function rollPrize() {
-    const spent = monthPrizeTotal();
     let r = Math.random();
     for (const p of PRIZES) {
-      if (r < p.rate) return spent + p.value <= MONTHLY_CAP ? p : null;
+      if (r < p.rate) return p;
       r -= p.rate;
     }
     return null;
@@ -451,7 +448,7 @@
       <div class="center">
         <div class="praise-emo">🎫</div>
         <h3>ガチャ券がなくなっちゃった</h3>
-        <p>本物のガチャを <b>1回がまん</b>すると<br><b>${ticketsFor(300)}回</b> まわせるよ！（300円の場合）</p>
+        <p>本物のガチャを <b>1回がまん</b>すると<br><b>${GAMAN_TICKETS}回</b> まわせるよ！</p>
         <p class="muted small">ほかにも、毎日のログインや実績でもらえます</p>
         <button class="btn primary wide" id="goGaman">がまんを申請する 💪</button>
         <button class="btn wide" data-close>とじる</button>
@@ -777,11 +774,10 @@
       else setPhase('idle');
     }
 
-    const left = Math.max(0, MONTHLY_CAP - monthPrizeTotal());
     const unused = S.prizes.filter((p) => !p.usedAt).length;
     $('#prizeStrip').innerHTML = `
       <div class="prize-strip-title">🎁 当たるかも！リアルご褒美</div>
-      <div class="prize-chips">${PRIZES.map((p) => `<span class="pchip ${left < p.value ? 'off' : ''}">${p.emoji} ${esc(p.name.replace('チケット', ''))}</span>`).join('')}</div>
+      <div class="prize-chips">${PRIZES.map((p) => `<span class="pchip">${p.emoji} ${esc(p.name.replace('チケット', ''))}</span>`).join('')}</div>
       ${unused ? `<button class="link" id="goPrize">🎟️ 使っていないご褒美が ${unused}枚 あるよ ›</button>` : ''}`;
     $('#goPrize')?.addEventListener('click', () => switchTab('prize'));
 
@@ -806,8 +802,7 @@
           <span class="lu-name">${show ? esc(it.name) : 'シークレット'}</span>
           <span class="badge r-${it.rarity}">${RARITY[it.rarity].short}</span>
           <span class="lu-p">${p}%</span></div>`;
-      }).join('')}</div>
-      <p class="muted small">ご褒美は1か月の合計が ${fmt(MONTHLY_CAP)}円分 になるまで当たります。</p>`;
+      }).join('')}</div>`;
 
     renderInstallTip();
   }
@@ -836,24 +831,22 @@
 
   /* ---------------- 描画: がまん ---------------- */
 
-  let selectedAmount = 300;
+  // 旧バージョンの金額つき記録は金額も表示する
+  const gamanTitle = (g) => (g.status === 'gift' ? '🎁 プレゼント' : `💪 がまん${g.amount ? ` <span class="muted small">${fmt(g.amount)}円</span>` : ''}`);
 
   function renderGaman() {
-    const total = gamanTotal(S);
-    const usedValue = S.prizes.filter((p) => p.usedAt).reduce((a, p) => a + (PRIZE_BY_ID[p.prize]?.value || 0), 0);
+    const count = gamanCount(S);
+    const monthCount = S.gaman.filter((g) => g.status === 'ok' && monthOf(g.decidedAt || g.date) === thisMonth()).length;
+    const got = S.gaman.filter((g) => g.status === 'ok' || g.status === 'gift').reduce((a, g) => a + (g.tickets || 0), 0);
     const pending = S.gaman.filter((g) => g.status === 'pending');
     const hist = S.gaman.filter((g) => g.status !== 'pending').slice(0, 40);
 
     const form = S.admin ? `
-      <div class="card">
-        <h3>💪 本物のガチャをがまんした！</h3>
-        <p class="muted small">${esc(adminName())}に認定されると、<b>100円につき🎫${TICKETS_PER_100YEN}枚</b>もらえます</p>
-        <div class="amount-grid">
-          ${[200, 300, 400, 500].map((a) => `<button class="btn amount ${a === selectedAmount ? 'sel' : ''}" data-amt="${a}">${a}円</button>`).join('')}
-          <button class="btn amount ${[200, 300, 400, 500].includes(selectedAmount) ? '' : 'sel'}" data-amt="custom">${[200, 300, 400, 500].includes(selectedAmount) ? 'その他' : `${fmt(selectedAmount)}円`}</button>
-        </div>
-        <input id="gamanNote" placeholder="どこで？（例: 駅前のねこガチャ）" maxlength="40">
-        <button class="btn primary wide big" id="gamanSend">🎫${ticketsFor(selectedAmount)}枚分を申請する</button>
+      <div class="card gaman-card">
+        <h3>本物のガチャを見かけたけど…</h3>
+        <input id="gamanNote" placeholder="ひとこと（例: 駅前のねこガチャ）任意" maxlength="40">
+        <button class="btn primary wide gaman-btn" id="gamanSend">💪 がまんした！</button>
+        <p class="muted small center">${esc(adminName())}に認定されると 🎫 ガチャ券 ${GAMAN_TICKETS}枚</p>
       </div>` : `
       <div class="card setup">
         <h3>🤝 まずは${esc(adminName())}とつなげよう</h3>
@@ -867,43 +860,28 @@
 
     $('#tab-gaman').innerHTML = `
       <div class="card hero pig">
-        <small>本物をがまんしたお金（認定ずみ）</small>
-        <div class="hero-num">${fmt(total)}<small>円</small></div>
+        <small>がまんできた回数（認定ずみ）</small>
+        <div class="hero-num">${count}<small>回</small></div>
         <div class="balance">
-          <div><small>ご褒美に使った</small><b>${fmt(usedValue)}円</b></div>
-          <div><small>家計のトク</small><b class="${total - usedValue >= 0 ? 'plus' : 'minus'}">${total - usedValue >= 0 ? '+' : ''}${fmt(total - usedValue)}円</b></div>
+          <div><small>今月</small><b>${monthCount}回</b></div>
+          <div><small>もらったガチャ券</small><b>🎫${got}枚</b></div>
         </div>
       </div>
       ${form}
       ${pending.length ? `<div class="card"><h3>⏳ 認定まち</h3><ul class="glist">${pending.map((g) => `
-        <li><div><b>${fmt(g.amount)}円</b> <span class="muted small">${fmtDate(g.date)}</span><br><span class="small">${esc(g.note || 'リアルガチャ')}</span></div>
+        <li><div><b>${gamanTitle(g)}</b> <span class="muted small">${fmtDate(g.date)}</span>${g.note ? `<br><span class="small">${esc(g.note)}</span>` : ''}</div>
           <div class="gbtns"><button class="btn mini" data-resend="${g.id}">もう一度送る</button><button class="btn mini" data-cancel="${g.id}">取り消し</button></div></li>`).join('')}</ul>
         <button class="btn wide" id="pasteCode2">📋 認定コードを貼りつける</button>
         <p class="muted small">認定のリンクをタップしても反映されないときは、リンクをコピーしてこのボタンから貼りつけてね。</p></div>` : ''}
       <div class="card"><h3>📝 りれき</h3>${hist.length ? `<ul class="glist">${hist.map((g) => `
-        <li><div><b>${fmt(g.amount)}円</b> <span class="muted small">${fmtDate(g.date)}</span><br><span class="small">${esc(g.note || 'リアルガチャ')}</span>
+        <li><div><b>${gamanTitle(g)}</b> <span class="muted small">${fmtDate(g.date)}</span>${g.note && g.status !== 'gift' ? `<br><span class="small">${esc(g.note)}</span>` : ''}
           ${g.msg ? `<br><span class="small msg">💬 ${esc(g.msg)}</span>` : ''}</div>
-          <span class="status s-${g.status}">${{ ok: `認定 🎫+${g.tickets}`, ng: '見送り', legacy: '旧記録', gift: 'プレゼント' }[g.status] || ''}</span></li>`).join('')}</ul>` : '<p class="muted">まだ記録がありません</p>'}</div>`;
+          <span class="status s-${g.status}">${{ ok: `認定 🎫+${g.tickets}`, ng: '見送り', legacy: '旧記録', gift: `🎫+${g.tickets}` }[g.status] || ''}</span></li>`).join('')}</ul>` : '<p class="muted">まだ記録がありません</p>'}</div>`;
   }
 
   $('#tab-gaman').addEventListener('click', async (e) => {
-    const amt = e.target.closest('[data-amt]');
-    if (amt) {
-      let a = amt.dataset.amt;
-      if (a === 'custom') {
-        const v = prompt('がまんした金額（円）を入力してね', '300');
-        if (v === null) return;
-        a = parseInt(String(v).replace(/[^\d]/g, ''), 10);
-        if (!a || a < 100 || a > 100000) { toast('100円以上で入力してね'); return; }
-      }
-      selectedAmount = Number(a);
-      const note = $('#gamanNote')?.value || '';
-      renderGaman();
-      $('#gamanNote').value = note;
-      return;
-    }
     if (e.target.id === 'gamanSend') {
-      const g = { id: Link.uid(), amount: selectedAmount, note: $('#gamanNote').value.trim(), date: new Date().toISOString(), status: 'pending', tickets: 0 };
+      const g = { id: Link.uid(), note: $('#gamanNote').value.trim(), date: new Date().toISOString(), status: 'pending', tickets: 0 };
       S.gaman.unshift(g);
       save();
       Sound.coin();
@@ -925,15 +903,15 @@
   });
 
   function requestMessage(g) {
-    const url = Link.adminUrl('req', Link.pack({ id: g.id, a: g.amount, n: g.note, d: g.date }));
-    return `💪 本物のガチャをがまんしました！\n金額: ${fmt(g.amount)}円\n${g.note ? `場所: ${g.note}\n` : ''}認定してね👇\n${url}`;
+    const url = Link.adminUrl('req', Link.pack({ id: g.id, n: g.note, d: g.date }));
+    return `💪 本物のガチャをがまんしました！\n${g.note ? `📍 ${g.note}\n` : ''}認定してね👇\n${url}`;
   }
 
   function showSendRequest(g, fresh) {
     openModal(`
       <div class="center">
         ${fresh ? `<div class="praise-emo">🐷💕</div><h3>${esc(rand(PRAISES))}</h3>` : '<h3>📮 申請をもう一度送る</h3>'}
-        <p>${fmt(g.amount)}円のがまんを<br><b>${esc(adminName())}に送って認定してもらおう</b></p>
+        <p>がまんしたことを<br><b>${esc(adminName())}に送って認定してもらおう</b></p>
       </div>
       ${Link.sendButtons(requestMessage(g), 'がまん認定のおねがい')}
       <p class="muted small center">認定されると 🎫 ガチャ券 がもらえます</p>
@@ -1031,7 +1009,7 @@
       if (S.gifts[d.id]) { toast('このプレゼントはもう受けとっています'); return; }
       S.gifts[d.id] = new Date().toISOString();
       S.tickets += d.t;
-      S.gaman.unshift({ id: d.id, amount: 0, note: `${adminName()}からのプレゼント`, date: new Date().toISOString(), status: 'gift', tickets: d.t, msg: d.m || '' });
+      S.gaman.unshift({ id: d.id, note: `${adminName()}からのプレゼント`, date: new Date().toISOString(), status: 'gift', tickets: d.t, msg: d.m || '' });
       save();
       celebrateGrant(`🎁 ${esc(adminName())}からプレゼント！`, d.t, d.m);
       return;
@@ -1085,7 +1063,7 @@
   /* ---------------- 描画: ごほうび ---------------- */
 
   function renderPrize() {
-    const spent = monthPrizeTotal();
+    const monthWon = S.prizes.filter((p) => monthOf(p.won) === thisMonth()).length;
     const unused = S.prizes.filter((p) => !p.usedAt);
     const used = S.prizes.filter((p) => p.usedAt).slice(0, 30);
     const ticket = (p, canUse) => {
@@ -1101,8 +1079,7 @@
       <div class="card hero">
         <small>使えるご褒美チケット</small>
         <div class="hero-num">${unused.length}<small>枚</small></div>
-        <p class="muted small">今月の当たり ${fmt(spent)}円分 ／ 上限 ${fmt(MONTHLY_CAP)}円</p>
-        <div class="bar"><i style="width:${Math.min(100, (spent / MONTHLY_CAP) * 100)}%"></i></div>
+        <p class="muted small">今月当たった数 ${monthWon}枚 ・ これまで ${S.prizes.length}枚</p>
       </div>
       <div class="card"><h3>🎟️ 使えるチケット</h3>
         ${unused.length ? unused.map((p) => ticket(p, true)).join('') : '<p class="muted">まだありません。ガチャで当てよう！</p>'}
@@ -1183,7 +1160,7 @@
       </div>
       ${html}
       <div class="card">
-        <h3>🏅 実績 <small class="muted">${Object.keys(S.achievements).length}/${ACHIEVEMENTS.length}</small></h3>
+        <h3>🏅 実績 <small class="muted">${ACHIEVEMENTS.filter((a) => S.achievements[a.id]).length}/${ACHIEVEMENTS.length}</small></h3>
         <div class="ach-grid">${ACHIEVEMENTS.map((a) => {
           const ok = S.achievements[a.id];
           return `<div class="ach ${ok ? 'got' : ''}"><span class="ach-icon">${ok ? a.icon : '🔒'}</span>
@@ -1227,7 +1204,7 @@
       <h4>📖 あそびかた</h4>
       <ul class="howto">
         <li>🎫 ガチャ券1枚で1回まわせる。毎日ログインでもらえる</li>
-        <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 100円につき🎫${TICKETS_PER_100YEN}枚</li>
+        <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 🎫${GAMAN_TICKETS}枚</li>
         <li>🎁 まわすと、たまに<b>本物のご褒美チケット</b>が当たる！「ごほうび」タブから使える</li>
         <li>🧸 はずれのときはマスコットが出て、ずかんにたまる</li>
         <li>🛟 マスコットが${PITY}回つづけてかぶると、次は必ずNEW</li>

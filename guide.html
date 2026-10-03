@@ -168,7 +168,7 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
         <rect x="440" y="20" width="170" height="100" rx="16" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
         <text x="525" y="58" text-anchor="middle" font-size="28">🎫</text>
         <text x="525" y="88" text-anchor="middle" font-size="15" font-weight="800">ガチャ券</text>
-        <text x="525" y="108" text-anchor="middle" font-size="12" class="mu">300円 → 3枚</text>
+        <text x="525" y="108" text-anchor="middle" font-size="12" class="mu">1回 → 3枚</text>
 
         <rect x="655" y="20" width="155" height="100" rx="16" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
         <text x="732" y="58" text-anchor="middle" font-size="28">🎰</text>
@@ -261,7 +261,7 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
         <p class="muted small" style="margin:0 0 6px">アプリの4つのタブ</p>
         <ul style="padding-left:1.2em;margin:0">
           <li><b>🎰 ガチャ</b>：🎫1枚でハンドルを回してカプセルを開ける</li>
-          <li><b>💪 がまん</b>：本物をがまんしたら金額を選んで申請 → LINE で送る</li>
+          <li><b>💪 がまん</b>：本物をがまんしたら「がまんした！」を押す → LINE で送る</li>
           <li><b>🎁 ごほうび</b>：当たったチケットの一覧。「使う」で使用済みに</li>
           <li><b>📖 ずかん</b>：マスコット・レベル・実績</li>
         </ul>
@@ -315,7 +315,7 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
         <line x1="410" y1="52" x2="410" y2="390" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 6"/>
         <line x1="700" y1="52" x2="700" y2="390" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 6"/>
 
-        <text x="130" y="76" font-size="13" font-weight="800">① 金額を選んで「申請する」</text>
+        <text x="130" y="76" font-size="13" font-weight="800">①「がまんした！」を押す</text>
         <line x1="120" y1="102" x2="404" y2="102" stroke="var(--ink)" stroke-width="2" marker-end="url(#a4)"/>
         <text x="265" y="96" text-anchor="middle" font-size="11" class="mu">申請リンクを送信</text>
         <line x1="410" y1="126" x2="694" y2="126" stroke="var(--ink)" stroke-width="2" marker-end="url(#a4)"/>
@@ -363,12 +363,12 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
       <tr><td>☕ カフェ</td><td>カフェでケーキセット</td><td class="n">800円</td><td class="n">2%</td><td>50回に1回</td></tr>
       <tr><td>🍣 お寿司</td><td>お寿司を食べに行く</td><td class="n">4,000円</td><td class="n">0.25%</td><td>400回に1回</td></tr>
     </table></div>
-    <div class="note green"><b>🛡️ 月の上限 5,000円</b>：その月に当たったご褒美の合計が 5,000円を超えそうになると、その当たりは出なくなります（月が変わるとリセット）。運が良すぎても出費は5,000円まで。</div>
+    <div class="note green"><b>📏 上限はありません</b>：確率で「平均するとこのくらい」になるように調整しているだけです。運が良い月は多め、悪い月は少なめになります。</div>
 
     <h3>🎫 ガチャ券のもらい方</h3>
     <div class="tw"><table>
       <tr><th>もらい方</th><th>枚数</th></tr>
-      <tr><td>💪 がまん認定</td><td><b>100円につき1枚</b>（300円 → 3枚）。だんなさんが増減できる</td></tr>
+      <tr><td>💪 がまん認定</td><td><b>1回につき3枚</b>。だんなさんが認定のときに増減できる</td></tr>
       <tr><td>🌞 毎日のログイン</td><td>1日1枚、7日連続目は3枚（月に約38枚）</td></tr>
       <tr><td>🎁 だんなさんのプレゼント</td><td>好きな枚数</td></tr>
       <tr><td>⭐ レベルアップ</td><td>1枚</td></tr>
@@ -403,25 +403,25 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
     <div class="calc">
       <div><small>1回まわしたときの<br>ご褒美の平均</small><div class="big-num">約50円</div></div>
       <div><small>月60回まわすと<br>ご褒美の平均</small><div class="big-num">約3,000円</div></div>
-      <div><small>どんなに当たっても<br>月の上限</small><div class="big-num">5,000円</div></div>
+      <div><small>がまん1回（🎫3枚）で<br>当たるご褒美の平均</small><div class="big-num">約150円</div></div>
     </div>
     <h3>💡 がまん1回あたりの家計</h3>
     <div class="tw"><table>
       <tr><th></th><th>金額</th></tr>
-      <tr><td>本物のガチャを1回がまん</td><td class="n">300円 浮く</td></tr>
+      <tr><td>本物のガチャを1回がまん</td><td class="n">300〜500円 浮く</td></tr>
       <tr><td>もらえるガチャ券 3枚で当たるご褒美（平均）</td><td class="n">約150円 使う</td></tr>
-      <tr class="total"><td>差し引き</td><td class="n">約150円 トク</td></tr>
+      <tr class="total"><td>差し引き</td><td class="n">約150〜350円 トク</td></tr>
     </table></div>
     <div class="note pink">がまんするほど家計は得になります。いちばん出費が出るのは、がまんの認定ではなく<b>毎日のログイン分（月約38回まわせる → 平均約1,900円）</b>です。出費を減らしたいときは、ここ（⑩）を調整します。</div>
     <h3>📅 1か月のイメージ</h3>
     <div class="tw"><table>
-      <tr><th>がまんの回数（300円）</th><th>まわせる回数</th><th>ご褒美の平均</th><th>当たりのイメージ</th></tr>
+      <tr><th>がまんの回数</th><th>まわせる回数</th><th>ご褒美の平均</th><th>当たりのイメージ</th></tr>
       <tr><td>がまんなし</td><td class="n">約38回</td><td class="n">約1,900円</td><td>デザート月3回</td></tr>
       <tr><td>週1回（月4回）</td><td class="n">約50回</td><td class="n">約2,500円</td><td>デザート月4回＋カフェ時々</td></tr>
       <tr><td>週2回（月8回）</td><td class="n">約62回</td><td class="n">約3,100円</td><td>ほぼ週1デザート＋カフェ月1回</td></tr>
       <tr><td>週4回（月16回）</td><td class="n">約86回</td><td class="n">約4,300円</td><td>お寿司のチャンスも</td></tr>
     </table></div>
-    <p class="small" style="color:var(--muted)">※ 平均の話なので、実際の月によって多い・少ないはあります（上限は5,000円）。</p>
+    <p class="small" style="color:var(--muted)">※ 平均の話なので、実際の月によって多い・少ないはあります。</p>
   </section>
 
   <!-- ⑧ -->
@@ -435,7 +435,7 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
 ├─ css/
 │  └─ style.css            <span class="c">見た目（色・大きさ・アニメーション）</span>
 ├─ js/
-│  ├─ <span class="hl">data.js</span>              <span class="hl">← 当たり・確率・上限・ガチャ券の枚数・マスコット・実績</span>
+│  ├─ <span class="hl">data.js</span>              <span class="hl">← 当たり・確率・ガチャ券の枚数・マスコット・実績</span>
 │  ├─ app.js               <span class="c">アプリの動き（抽選・ハンドル・画面）</span>
 │  ├─ admin.js             <span class="c">管理ページの動き（認定・プレゼント・りれき）</span>
 │  └─ link.js              <span class="c">LINEで送るリンクと「印（電子署名）」</span>
@@ -472,17 +472,16 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
     <div class="ask">月の出費をもう少し減らしたいので、ログインボーナスを2日に1枚にして。</div>
     <div class="ask">お寿司チケットを1万円にして、確率は半分に。</div>
     <div class="ask">「映画チケット 2,000円 1%」を当たりに追加して。</div>
-    <div class="ask">がまん100円あたりのガチャ券を2枚に増やして。</div>
+    <div class="ask">がまん1回でもらえるガチャ券を5枚に増やして。</div>
     <h3>自分で変えるなら</h3>
     <p class="small" style="margin:0 0 6px">GitHub で <code>js/data.js</code> を開き、鉛筆マーク ✏️ で編集できます。先頭にこう書いてあります：</p>
     <div class="tree">{ id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 300, rate: 0.08, desc: 'コンビニスイーツをひとつ' },
 <span class="c">                                                     ↑金額     ↑確率(0.08=8%) ↑説明</span>
-const MONTHLY_CAP = 5000;        <span class="c">← 月の上限（円）</span>
-const TICKETS_PER_100YEN = 1;    <span class="c">← がまん100円あたりのガチャ券</span>
+const GAMAN_TICKETS = 3;         <span class="c">← がまん1回でもらえるガチャ券</span>
 const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];   <span class="c">← 1〜7日目のログインボーナス</span></div>
     <div class="note">
       ・<code>id</code>（最初の英字）は変えないでください。すでに当たったチケットが分からなくなります。<br>
-      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v3</code> の数字を1つ上げると、スマホに確実に届きます。<br>
+      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v4</code> の数字を1つ上げると、スマホに確実に届きます。<br>
       ・数字を変えたら、⑦のお金の計算も変わります。Claude に「月の平均はいくらになる？」と聞けば計算できます。
     </div>
     <h3>更新の流れ</h3>
@@ -503,7 +502,6 @@ const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];   <span class="c">← 1〜7日目�
     <details><summary>管理ページで「先にカギを作ってください」と出る</summary><p>カギを作ったのとは別のブラウザで開いています（LINE の中のブラウザ、ホーム画面のアイコンなど）。Safari で開き直してください。それでもダメなら、前に「カギのバックアップ」をコピーしていれば、初期画面の「前に作ったカギを戻す」から戻せます。</p></details>
     <details><summary>カギをなくした（機種変更・履歴を消した）</summary><p>新しくカギを作り直して、「つなぐリンク」をもう一度ハルに送ってください。ハルのアプリで「つなぎ先を変えますか？」と出るので「変える」を押します。まだ認定していない申請は、ハルに送り直してもらいます。</p></details>
     <details><summary>「この申請が見つかりません」と出る</summary><p>申請したときと別のブラウザ（またはアプリ）で認定リンクを開いています。申請したほう（ふだん遊んでいるアプリ）で「コードを貼りつける」から読みこんでください。</p></details>
-    <details><summary>ご褒美が当たらなくなった</summary><p>今月の当たりの合計が上限（5,000円）に近づいています。「ごほうび」タブで今月の合計を確認できます。来月になると元に戻ります。</p></details>
     <details><summary>アプリが新しくならない</summary><p>① main に反映されているか、② Actions タブで ✅ か、③ アプリを閉じて開き直したか、の順に確認してください。</p></details>
     <details><summary>お金はかかりますか？</summary><p>かかりません。GitHub・GitHub Pages・LINE の送信はこの使い方なら無料です。かかるのは、当たったご褒美の本物代だけです。</p></details>
   </section>

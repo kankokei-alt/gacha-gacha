@@ -4,18 +4,17 @@
 /* ================================================================
  * リアルご褒美（当たり）の設定
  *   rate  … 1回まわしたときに当たる確率（0.08 = 8%）
- *   value … 1枚あたりの金額（円）。月の上限計算に使う
- * 1か月に60回まわすと、平均 約3,000円 になるように調整しています。
+ *   value … 1枚あたりの金額の目安（円）。平均の計算に使う
+ * 1回あたりの平均は約50円。1か月に60回まわすと、平均 約3,000円 になる確率です。
+ * （上限はありません。運が良い月は多め、悪い月は少なめになります）
  * ================================================================ */
 const PRIZES = [
   { id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 300, rate: 0.08, desc: 'コンビニスイーツをひとつ' },
   { id: 'cafe', name: 'カフェチケット', emoji: '☕', value: 800, rate: 0.02, desc: 'カフェでケーキセット' },
   { id: 'sushi', name: 'お寿司チケット', emoji: '🍣', value: 4000, rate: 0.0025, desc: 'お寿司を食べに行こう' },
 ];
-// 1か月に当たるご褒美の合計の上限（円）。超える当たりはその月は出ない
-const MONTHLY_CAP = 5000;
-// 我慢100円あたりにもらえるガチャ券の枚数（300円の我慢 → 3枚）
-const TICKETS_PER_100YEN = 1;
+// 本物のガチャを1回がまんして認定されたときにもらえるガチャ券（管理ページで増減できる）
+const GAMAN_TICKETS = 3;
 // ログインボーナス（7日でひとまわり）
 const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];
 // レベルアップでもらえるガチャ券
@@ -153,7 +152,6 @@ const PRAISES = [
   'その意志のつよさ、SSR級です🌟',
 ];
 
-function gamanTotal(s) { return s.gaman.filter((g) => g.status === 'ok' || g.status === 'legacy').reduce((a, g) => a + g.amount, 0); }
 function gamanCount(s) { return s.gaman.filter((g) => g.status === 'ok' || g.status === 'legacy').length; }
 function ownedIn(s, items) { return items.filter((it) => (s.collection[it.id] || 0) > 0).length; }
 function allItems() { return Object.values(ITEMS); }
@@ -177,11 +175,10 @@ const ACHIEVEMENTS = [
     test: (s) => ownedIn(s, m.items) === m.items.length,
   })),
   { id: 'compAll', icon: '👑', name: '完全制覇', desc: 'すべてのマスコットをあつめる', reward: 10, test: (s) => ownedIn(s, allItems()) === allItems().length },
-  { id: 'gaman1', icon: '💪', name: 'はじめての我慢', desc: '我慢をはじめて認定してもらう', reward: 2, test: (s) => gamanCount(s) >= 1 },
-  { id: 'gaman10', icon: '🧘', name: 'がまんの達人', desc: '我慢を10回認定してもらう', reward: 3, test: (s) => gamanCount(s) >= 10 },
-  { id: 'yen1000', icon: '🐷', name: '我慢 1,000円', desc: '我慢した金額が1,000円になる', reward: 2, test: (s) => gamanTotal(s) >= 1000 },
-  { id: 'yen5000', icon: '💰', name: '我慢 5,000円', desc: '我慢した金額が5,000円になる', reward: 3, test: (s) => gamanTotal(s) >= 5000 },
-  { id: 'yen10000', icon: '💎', name: '我慢 1万円', desc: '我慢した金額が10,000円になる', reward: 5, test: (s) => gamanTotal(s) >= 10000 },
+  { id: 'gaman1', icon: '💪', name: 'はじめての我慢', desc: 'がまんをはじめて認定してもらう', reward: 2, test: (s) => gamanCount(s) >= 1 },
+  { id: 'gaman5', icon: '🐷', name: 'がまん上手', desc: 'がまんを5回認定してもらう', reward: 2, test: (s) => gamanCount(s) >= 5 },
+  { id: 'gaman10', icon: '🧘', name: 'がまんの達人', desc: 'がまんを10回認定してもらう', reward: 3, test: (s) => gamanCount(s) >= 10 },
+  { id: 'gaman30', icon: '💎', name: 'がまんの神', desc: 'がまんを30回認定してもらう', reward: 5, test: (s) => gamanCount(s) >= 30 },
   { id: 'streak3', icon: '🔥', name: '3日連続', desc: '3日連続でログイン', reward: 1, test: (s) => s.login.best >= 3 },
   { id: 'streak7', icon: '📅', name: '1週間連続', desc: '7日連続でログイン', reward: 2, test: (s) => s.login.best >= 7 },
   { id: 'streak30', icon: '🗓️', name: '1か月連続', desc: '30日連続でログイン', reward: 5, test: (s) => s.login.best >= 30 },
