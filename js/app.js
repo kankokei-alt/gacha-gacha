@@ -1160,6 +1160,10 @@
     if (currentTab === 'mission') renderMission();
   }
 
+  // iPhone Safari は user-scalable=no を無視するので、ピンチ拡大はここで止める
+  // （ダブルタップ拡大は CSS の touch-action: manipulation で止めている）
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+
   /* ---------------- 起動 ---------------- */
 
   checkDay();
