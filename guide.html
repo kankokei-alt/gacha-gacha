@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ぽけっとガチャ説明書</title>
-<meta name="description" content="ぽけっとガチャの全体の仕組み・ゲームのルール・ファイル構成・更新のしかたをまとめた説明書">
+<meta name="description" content="ぽけっとガチャの仕組み・2人の役割・がまん認定の流れ・当たりの確率とお金・ファイル構成・更新のしかたをまとめた説明書">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
   --bg: #fff7fb; --card: #ffffff; --ink: #3f3340; --muted: #8a7887; --line: #f1d9e4;
   --pink: #f0508c; --pink-soft: #ffe3ef; --blue: #3b8fd9; --blue-soft: #e3f1ff;
   --green: #2e9e6a; --green-soft: #e1f6ea; --gold: #c98a00; --gold-soft: #fff3cf;
-  --purple: #8a5bd6; --purple-soft: #f0e8ff; --code: #fbeff5;
+  --purple: #8a5bd6; --purple-soft: #f0e8ff; --code: #fbeff5; --line-green: #06c755;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -53,13 +53,13 @@ nav.toc a {
   flex: 0 0 auto; text-decoration: none; color: var(--ink); font-size: .85rem; font-weight: 800;
   padding: 6px 12px; border-radius: 999px; background: var(--card); border: 2px solid var(--line);
 }
-section { margin-bottom: 40px; }
+section { margin-bottom: 44px; }
 h2 { font-size: 1.4rem; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
 h2 .num { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--pink); color: #fff; font-size: 1rem; flex-shrink: 0; }
 .lead { color: var(--muted); margin: 0 0 16px; }
-h3 { margin: 20px 0 8px; font-size: 1.1rem; }
+h3 { margin: 22px 0 8px; font-size: 1.1rem; }
 .card { background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
 .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .mini { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 14px; }
 .mini .ic { font-size: 1.8rem; }
@@ -68,21 +68,25 @@ h3 { margin: 20px 0 8px; font-size: 1.1rem; }
 .note { border-left: 5px solid var(--gold); background: var(--gold-soft); border-radius: 0 14px 14px 0; padding: 10px 14px; margin: 12px 0; font-size: .93rem; }
 .note.blue { border-color: var(--blue); background: var(--blue-soft); }
 .note.green { border-color: var(--green); background: var(--green-soft); }
-svg.diagram { width: 100%; min-width: 600px; height: auto; display: block; }
+.note.pink { border-color: var(--pink); background: var(--pink-soft); }
 .dg { overflow-x: auto; }
+svg.diagram { width: 100%; min-width: 600px; height: auto; display: block; }
+svg text { font-family: inherit; fill: var(--ink); }
+svg .mu { fill: var(--muted); }
 .swipe { display: none; font-size: .8rem; color: var(--muted); margin: 0 0 6px; }
 @media (max-width: 640px) { .swipe { display: block; } }
-svg text { font-family: inherit; fill: var(--ink); }
 .tw { overflow-x: auto; margin: 8px 0; }
 table { border-collapse: collapse; width: 100%; font-size: .92rem; background: var(--card); border-radius: 14px; overflow: hidden; }
 th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 th { background: var(--pink-soft); white-space: nowrap; }
 td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.total td { font-weight: 800; background: var(--gold-soft); }
 .tag { display: inline-block; font-size: .72rem; font-weight: 800; padding: 1px 8px; border-radius: 999px; color: #fff; white-space: nowrap; }
 .t-N { background: #8fa3b8; } .t-R { background: #3b8fd9; } .t-SR { background: #d99a00; }
 .t-SE { background: linear-gradient(90deg, #ff6b6b, #f0b400, #22b07d, #3ba7e0, #9a6bf0); }
+.t-P { background: linear-gradient(90deg, #ff6b8b, #ffb347); }
 .bars { display: grid; gap: 8px; margin: 10px 0; }
-.bar-row { display: grid; grid-template-columns: 96px 1fr 50px; align-items: center; gap: 8px; font-size: .9rem; }
+.bar-row { display: grid; grid-template-columns: 120px 1fr 54px; align-items: center; gap: 8px; font-size: .9rem; }
 .bar-row .track { height: 16px; background: var(--line); border-radius: 8px; overflow: hidden; }
 .bar-row .fill { height: 100%; border-radius: 8px; }
 .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
@@ -94,6 +98,9 @@ td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowra
 .steps li::after { content: ''; position: absolute; left: 14px; top: 34px; bottom: 0; width: 2px; background: var(--line); }
 .steps li:last-child::after { display: none; }
 .steps b { display: block; }
+.who { display: inline-block; font-size: .72rem; font-weight: 800; padding: 1px 8px; border-radius: 999px; margin-right: 4px; vertical-align: 1px; }
+.who.h { background: var(--pink-soft); color: var(--pink); }
+.who.a { background: var(--blue-soft); color: var(--blue); }
 .tree { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86rem; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 14px; overflow-x: auto; line-height: 1.9; white-space: pre; }
 .tree .c { color: var(--muted); }
 .tree .hl { color: var(--pink); font-weight: 700; }
@@ -102,10 +109,15 @@ details summary { font-weight: 800; cursor: pointer; }
 details p { margin: 8px 0 2px; }
 .ask { background: var(--purple-soft); border-radius: 14px; padding: 12px 14px; margin: 6px 0; font-size: .93rem; }
 .ask::before { content: '💬 '; }
+.big-num { font-size: 2rem; font-weight: 800; color: var(--pink); line-height: 1.2; }
+.calc { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; text-align: center; }
+.calc > div { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 12px 8px; }
+.calc small { display: block; color: var(--muted); }
+.calc .plus { color: var(--green); }
 footer { text-align: center; color: var(--muted); font-size: .85rem; }
 .theme-btn { position: fixed; right: 14px; bottom: 14px; border: 2px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; width: 44px; height: 44px; font-size: 1.2rem; cursor: pointer; }
 @media (max-width: 520px) {
-  .bar-row { font-size: .82rem; }
+  .bar-row { grid-template-columns: 100px 1fr 48px; font-size: .82rem; }
   table { font-size: .84rem; }
   th, td { padding: 8px 6px; }
 }
@@ -116,167 +128,256 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
   <header class="hero">
     <div class="logo">🎰</div>
     <h1>ぽけっとガチャ 説明書</h1>
-    <p>どこで動いているのか・どう遊ぶのか・どう直すのか、をひとまとめに</p>
+    <p>本物をがまんして、アプリで回して、リアルのご褒美を当てよう</p>
   </header>
 
   <nav class="toc">
-    <a href="#s1">① 全体の仕組み</a>
-    <a href="#s2">② ゲームの流れ</a>
-    <a href="#s3">③ 数字の早見表</a>
-    <a href="#s4">④ 1回のガチャ</a>
-    <a href="#s5">⑤ ファイル構成</a>
-    <a href="#s6">⑥ データの保存</a>
-    <a href="#s7">⑦ 更新のしかた</a>
-    <a href="#s8">⑧ よくある質問</a>
+    <a href="#s1">① ひとことで</a>
+    <a href="#s2">② 全体の仕組み</a>
+    <a href="#s3">③ 2人の役割</a>
+    <a href="#s4">④ はじめの準備</a>
+    <a href="#s5">⑤ がまん認定</a>
+    <a href="#s6">⑥ 確率と数字</a>
+    <a href="#s7">⑦ お金の計算</a>
+    <a href="#s8">⑧ ファイル構成</a>
+    <a href="#s9">⑨ データと安全</a>
+    <a href="#s10">⑩ 変えたいとき</a>
+    <a href="#s11">⑪ こまったとき</a>
   </nav>
 
   <!-- ① -->
   <section id="s1">
-    <h2><span class="num">1</span>全体の仕組み</h2>
-    <p class="lead">アプリは「GitHub に置いたファイルを、GitHub が自動でWebサイトとして公開し、スマホがそれを読み込む」だけの構造です。サーバーやデータベースはありません。</p>
-
-    <div class="card dg">
+    <h2><span class="num">1</span>ひとことで言うと</h2>
+    <p class="lead">「本物のガチャより、こっちのガチャのほうがリアルに得する」と感じてもらうアプリです。</p>
+    <div class="dg card">
       <p class="swipe">👉 図は横にスクロールできます</p>
-      <svg class="diagram" viewBox="0 0 820 300" role="img" aria-label="GitHubリポジトリからGitHub Actions、GitHub Pagesを経てスマホに届く流れ">
+      <svg class="diagram" viewBox="0 0 820 300" role="img" aria-label="がまん、認定、ガチャ券、ガチャ、当たりとはずれのループ">
         <defs>
-          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
+          <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--pink)"/></marker>
         </defs>
-        <!-- repo -->
-        <rect x="10" y="40" width="180" height="150" rx="18" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="2"/>
-        <text x="100" y="78" text-anchor="middle" font-size="30">📦</text>
-        <text x="100" y="110" text-anchor="middle" font-size="16" font-weight="800">リポジトリ</text>
-        <text x="100" y="132" text-anchor="middle" font-size="12" fill="var(--muted)" style="fill:var(--muted)">kankokei-alt/gacha-gacha</text>
-        <text x="100" y="158" text-anchor="middle" font-size="13">ファイルの置き場所</text>
-        <text x="100" y="176" text-anchor="middle" font-size="13">（main ブランチ）</text>
-        <!-- actions -->
-        <rect x="220" y="40" width="180" height="150" rx="18" fill="var(--purple-soft)" stroke="var(--purple)" stroke-width="2"/>
-        <text x="310" y="78" text-anchor="middle" font-size="30">🤖</text>
-        <text x="310" y="110" text-anchor="middle" font-size="16" font-weight="800">GitHub Actions</text>
-        <text x="310" y="132" text-anchor="middle" font-size="12" style="fill:var(--muted)">pages.yml</text>
-        <text x="310" y="158" text-anchor="middle" font-size="13">main が変わったら</text>
-        <text x="310" y="176" text-anchor="middle" font-size="13">自動で公開作業</text>
-        <!-- pages -->
-        <rect x="430" y="40" width="180" height="150" rx="18" fill="var(--green-soft)" stroke="var(--green)" stroke-width="2"/>
-        <text x="520" y="78" text-anchor="middle" font-size="30">🌐</text>
-        <text x="520" y="110" text-anchor="middle" font-size="16" font-weight="800">GitHub Pages</text>
-        <text x="520" y="132" text-anchor="middle" font-size="11" style="fill:var(--muted)">kankokei-alt.github.io/gacha-gacha</text>
-        <text x="520" y="158" text-anchor="middle" font-size="13">無料のWebサイト</text>
-        <text x="520" y="176" text-anchor="middle" font-size="13">置き場</text>
-        <!-- phone -->
-        <rect x="660" y="20" width="140" height="190" rx="26" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
-        <text x="730" y="70" text-anchor="middle" font-size="30">📱</text>
-        <text x="730" y="102" text-anchor="middle" font-size="16" font-weight="800">奥様のスマホ</text>
-        <text x="730" y="130" text-anchor="middle" font-size="13">アプリを表示</text>
-        <text x="730" y="150" text-anchor="middle" font-size="13">＋</text>
-        <text x="730" y="170" text-anchor="middle" font-size="13" font-weight="800">データを保存</text>
-        <text x="730" y="190" text-anchor="middle" font-size="12" style="fill:var(--muted)">（スマホの中だけ）</text>
-        <!-- arrows -->
-        <line x1="192" y1="115" x2="216" y2="115" stroke="var(--muted)" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="402" y1="115" x2="426" y2="115" stroke="var(--muted)" stroke-width="3" marker-end="url(#ar)"/>
-        <line x1="612" y1="115" x2="656" y2="115" stroke="var(--muted)" stroke-width="3" marker-end="url(#ar)"/>
-        <text x="634" y="104" text-anchor="middle" font-size="11" style="fill:var(--muted)">読込</text>
-        <!-- bottom note -->
-        <rect x="10" y="226" width="600" height="56" rx="14" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="6 6"/>
-        <text x="310" y="250" text-anchor="middle" font-size="13">ここまでが「アプリの中身（プログラム）」の流れ。</text>
-        <text x="310" y="270" text-anchor="middle" font-size="13">遊んだ記録（コイン・ずかん・貯金）はここには一切送られません。</text>
+        <rect x="10" y="20" width="170" height="100" rx="16" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="2"/>
+        <text x="95" y="58" text-anchor="middle" font-size="28">🛑</text>
+        <text x="95" y="88" text-anchor="middle" font-size="15" font-weight="800">本物のガチャを</text>
+        <text x="95" y="108" text-anchor="middle" font-size="15" font-weight="800">がまん</text>
+
+        <rect x="225" y="20" width="170" height="100" rx="16" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="310" y="58" text-anchor="middle" font-size="28">✅</text>
+        <text x="310" y="88" text-anchor="middle" font-size="15" font-weight="800">だんなさんが</text>
+        <text x="310" y="108" text-anchor="middle" font-size="15" font-weight="800">認定</text>
+
+        <rect x="440" y="20" width="170" height="100" rx="16" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
+        <text x="525" y="58" text-anchor="middle" font-size="28">🎫</text>
+        <text x="525" y="88" text-anchor="middle" font-size="15" font-weight="800">ガチャ券</text>
+        <text x="525" y="108" text-anchor="middle" font-size="12" class="mu">300円 → 3枚</text>
+
+        <rect x="655" y="20" width="155" height="100" rx="16" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
+        <text x="732" y="58" text-anchor="middle" font-size="28">🎰</text>
+        <text x="732" y="88" text-anchor="middle" font-size="15" font-weight="800">アプリで</text>
+        <text x="732" y="108" text-anchor="middle" font-size="15" font-weight="800">回す</text>
+
+        <rect x="440" y="180" width="200" height="100" rx="16" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="3"/>
+        <text x="540" y="216" text-anchor="middle" font-size="24">🍮☕🍣</text>
+        <text x="540" y="244" text-anchor="middle" font-size="15" font-weight="800">当たり！ご褒美チケット</text>
+        <text x="540" y="266" text-anchor="middle" font-size="12" class="mu">約10回に1回</text>
+
+        <rect x="660" y="180" width="150" height="100" rx="16" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+        <text x="735" y="216" text-anchor="middle" font-size="24">🧸</text>
+        <text x="735" y="244" text-anchor="middle" font-size="15" font-weight="800">はずれ</text>
+        <text x="735" y="266" text-anchor="middle" font-size="12" class="mu">マスコット→ずかん</text>
+
+        <rect x="10" y="180" width="380" height="100" rx="16" fill="var(--green-soft)" stroke="var(--green)" stroke-width="2"/>
+        <text x="200" y="218" text-anchor="middle" font-size="15" font-weight="800">🎁 本物のご褒美をもらう</text>
+        <text x="200" y="244" text-anchor="middle" font-size="13">チケットの「使う」を押す → だんなさんに通知</text>
+        <text x="200" y="266" text-anchor="middle" font-size="12" class="mu">「また当てたい！」→ 次もがまんしよう</text>
+
+        <line x1="182" y1="70" x2="221" y2="70" stroke="var(--pink)" stroke-width="3" marker-end="url(#a1)"/>
+        <line x1="397" y1="70" x2="436" y2="70" stroke="var(--pink)" stroke-width="3" marker-end="url(#a1)"/>
+        <line x1="612" y1="70" x2="651" y2="70" stroke="var(--pink)" stroke-width="3" marker-end="url(#a1)"/>
+        <line x1="715" y1="122" x2="590" y2="176" stroke="var(--pink)" stroke-width="3" marker-end="url(#a1)"/>
+        <line x1="740" y1="122" x2="740" y2="176" stroke="var(--pink)" stroke-width="3" marker-end="url(#a1)"/>
+        <line x1="438" y1="230" x2="394" y2="230" stroke="var(--pink)" stroke-width="3" marker-end="url(#a1)"/>
+        <path d="M95 178 L95 124" stroke="var(--pink)" stroke-width="3" marker-end="url(#a1)" fill="none"/>
       </svg>
     </div>
-
     <div class="grid3">
-      <div class="mini"><div class="ic">📦</div><b>リポジトリ</b><p>アプリのファイル一式を保管する場所。Googleドライブのフォルダのようなもの。</p></div>
-      <div class="mini"><div class="ic">🤖</div><b>GitHub Actions</b><p>main ブランチが更新されると、自動でサイトを作り直してくれる係。</p></div>
-      <div class="mini"><div class="ic">🌐</div><b>GitHub Pages</b><p>ファイルをWebサイトとして無料で公開してくれるサービス。</p></div>
-    </div>
-
-    <div class="note blue"><b>ブランチって？</b><br>
-      リポジトリの中の「作業用コピー」です。<code>main</code> が本番、<code>claude/zealous-newton-by3jhe</code> は Claude が作業するためのコピーです。<br>
-      <b>main が変わったときだけ公開サイトが更新されます。</b>
+      <div class="mini"><div class="ic">🎫</div><b>お金は「ガチャ券」1つだけ</b><p>1枚で1回まわせる。毎日ログインでももらえる。</p></div>
+      <div class="mini"><div class="ic">🎁</div><b>当たりは本物のご褒美</b><p>デザート・カフェ・お寿司のチケット。</p></div>
+      <div class="mini"><div class="ic">🧸</div><b>はずれも楽しい</b><p>マスコットが出て、ずかんが埋まっていく。</p></div>
     </div>
   </section>
 
   <!-- ② -->
   <section id="s2">
-    <h2><span class="num">2</span>ゲームの流れ</h2>
-    <p class="lead">中心にあるのは「本物を我慢する → アプリで回せる → 本物のご褒美も近づく」というループです。</p>
-
-    <div class="card dg">
+    <h2><span class="num">2</span>全体の仕組み</h2>
+    <p class="lead">アプリは GitHub に置いたファイルを、2人のスマホがそれぞれ開いて使います。2人の間のやりとりは <b>LINE で送るリンク</b> だけです。</p>
+    <div class="dg card">
       <p class="swipe">👉 図は横にスクロールできます</p>
-      <svg class="diagram" viewBox="0 0 820 470" role="img" aria-label="がまん貯金からコイン、ガチャ、ずかんへと進むゲームのループ図">
+      <svg class="diagram" viewBox="0 0 820 330" role="img" aria-label="GitHub Pagesからハルのスマホとだんなさんのスマホにアプリが届き、2台の間はLINEでやりとりする図">
         <defs>
-          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--pink)"/></marker>
-          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
+          <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
+          <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--line-green)"/></marker>
         </defs>
-        <!-- real world -->
-        <rect x="10" y="10" width="250" height="450" rx="20" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="2" stroke-dasharray="8 6"/>
-        <text x="135" y="40" text-anchor="middle" font-size="15" font-weight="800">🏙️ リアルの世界</text>
-        <rect x="35" y="65" width="200" height="80" rx="14" fill="var(--card)" stroke="var(--gold)" stroke-width="2"/>
-        <text x="135" y="98" text-anchor="middle" font-size="15" font-weight="800">🛑 ガチャを我慢</text>
-        <text x="135" y="122" text-anchor="middle" font-size="12" style="fill:var(--muted)">例: 駅前の300円ガチャ</text>
-        <rect x="35" y="330" width="200" height="100" rx="14" fill="var(--card)" stroke="var(--gold)" stroke-width="2"/>
-        <text x="135" y="365" text-anchor="middle" font-size="15" font-weight="800">🎁 本物のご褒美</text>
-        <text x="135" y="390" text-anchor="middle" font-size="12" style="fill:var(--muted)">目標金額がたまったら</text>
-        <text x="135" y="410" text-anchor="middle" font-size="12" style="fill:var(--muted)">実際に買う</text>
+        <rect x="260" y="10" width="300" height="96" rx="16" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="410" y="40" text-anchor="middle" font-size="16" font-weight="800">🌐 GitHub Pages（公開サイト）</text>
+        <text x="410" y="64" text-anchor="middle" font-size="12" class="mu">kankokei-alt.github.io/gacha-gacha/</text>
+        <text x="410" y="86" text-anchor="middle" font-size="12">アプリのプログラムを配るだけ（記録は持たない）</text>
 
-        <!-- app -->
-        <rect x="290" y="10" width="520" height="450" rx="20" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
-        <text x="550" y="40" text-anchor="middle" font-size="15" font-weight="800">📱 アプリの世界</text>
+        <rect x="10" y="150" width="270" height="170" rx="22" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
+        <text x="145" y="182" text-anchor="middle" font-size="16" font-weight="800">📱 ハルのスマホ</text>
+        <text x="145" y="206" text-anchor="middle" font-size="13">アプリ本体（index.html）</text>
+        <text x="145" y="236" text-anchor="middle" font-size="12">🎫 ガチャ券・🎁 ご褒美チケット</text>
+        <text x="145" y="256" text-anchor="middle" font-size="12">📖 ずかん・💪 がまんの記録</text>
+        <text x="145" y="280" text-anchor="middle" font-size="12">🔓 だんなさんの「公開カギ」</text>
+        <text x="145" y="304" text-anchor="middle" font-size="11" class="mu">記録はこのスマホの中だけ</text>
 
-        <rect x="315" y="65" width="200" height="80" rx="14" fill="var(--card)" stroke="var(--pink)" stroke-width="2"/>
-        <text x="415" y="98" text-anchor="middle" font-size="15" font-weight="800">🐷 がまん貯金</text>
-        <text x="415" y="122" text-anchor="middle" font-size="12" style="fill:var(--muted)">金額をボタンで記録</text>
+        <rect x="540" y="150" width="270" height="170" rx="22" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="675" y="182" text-anchor="middle" font-size="16" font-weight="800">📱 だんなさんのスマホ</text>
+        <text x="675" y="206" text-anchor="middle" font-size="13">管理ページ（admin.html）</text>
+        <text x="675" y="236" text-anchor="middle" font-size="12">🔑 認定用の「秘密カギ」</text>
+        <text x="675" y="256" text-anchor="middle" font-size="12">📊 認定・使用のりれき</text>
+        <text x="675" y="280" text-anchor="middle" font-size="12">Safari で開いて使う</text>
+        <text x="675" y="304" text-anchor="middle" font-size="11" class="mu">記録はこのスマホの中だけ</text>
 
-        <rect x="585" y="65" width="200" height="80" rx="14" fill="var(--card)" stroke="var(--pink)" stroke-width="2"/>
-        <text x="685" y="98" text-anchor="middle" font-size="15" font-weight="800">🪙 コイン</text>
-        <text x="685" y="122" text-anchor="middle" font-size="12" style="fill:var(--muted)">記録した金額と同じ枚数</text>
+        <line x1="320" y1="108" x2="200" y2="146" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#a2)"/>
+        <line x1="500" y1="108" x2="620" y2="146" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#a2)"/>
 
-        <rect x="585" y="200" width="200" height="80" rx="14" fill="var(--card)" stroke="var(--pink)" stroke-width="2"/>
-        <text x="685" y="233" text-anchor="middle" font-size="15" font-weight="800">🎰 ガチャを回す</text>
-        <text x="685" y="257" text-anchor="middle" font-size="12" style="fill:var(--muted)">200〜500コイン/回</text>
-
-        <rect x="585" y="340" width="200" height="90" rx="14" fill="var(--card)" stroke="var(--pink)" stroke-width="2"/>
-        <text x="685" y="370" text-anchor="middle" font-size="15" font-weight="800">📖 ずかん</text>
-        <text x="685" y="392" text-anchor="middle" font-size="12" style="fill:var(--muted)">NEW → 登録</text>
-        <text x="685" y="412" text-anchor="middle" font-size="12" style="fill:var(--muted)">かぶり → 💎かけら</text>
-
-        <rect x="315" y="200" width="200" height="80" rx="14" fill="var(--card)" stroke="var(--purple)" stroke-width="2"/>
-        <text x="415" y="230" text-anchor="middle" font-size="14" font-weight="800">🌞 ログボ / 📋 ミッション</text>
-        <text x="415" y="252" text-anchor="middle" font-size="12" style="fill:var(--muted)">毎日コイン・無料チケット</text>
-        <text x="415" y="270" text-anchor="middle" font-size="12" style="fill:var(--muted)">🏅 実績でもコイン</text>
-
-        <rect x="315" y="340" width="200" height="90" rx="14" fill="var(--card)" stroke="var(--purple)" stroke-width="2"/>
-        <text x="415" y="370" text-anchor="middle" font-size="14" font-weight="800">⭐ レベルアップ</text>
-        <text x="415" y="392" text-anchor="middle" font-size="12" style="fill:var(--muted)">回すほどXPがたまる</text>
-        <text x="415" y="412" text-anchor="middle" font-size="12" style="fill:var(--muted)">→ 新しいマシン解放</text>
-
-        <!-- arrows -->
-        <line x1="237" y1="105" x2="311" y2="105" stroke="var(--pink)" stroke-width="3" marker-end="url(#ar2)"/>
-        <line x1="517" y1="105" x2="581" y2="105" stroke="var(--pink)" stroke-width="3" marker-end="url(#ar2)"/>
-        <line x1="685" y1="147" x2="685" y2="196" stroke="var(--pink)" stroke-width="3" marker-end="url(#ar2)"/>
-        <line x1="685" y1="282" x2="685" y2="336" stroke="var(--pink)" stroke-width="3" marker-end="url(#ar2)"/>
-        <line x1="517" y1="225" x2="581" y2="140" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#ar3)"/>
-        <line x1="583" y1="270" x2="519" y2="350" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#ar3)"/>
-        <path d="M415 147 C 415 175 300 175 250 330" fill="none" stroke="var(--gold)" stroke-width="3" marker-end="url(#ar3)"/>
-        <text x="300" y="185" font-size="12" style="fill:var(--gold)" font-weight="800">目標が進む</text>
+        <line x1="284" y1="215" x2="536" y2="215" stroke="var(--line-green)" stroke-width="3" marker-end="url(#a3)"/>
+        <line x1="536" y1="265" x2="284" y2="265" stroke="var(--line-green)" stroke-width="3" marker-end="url(#a3)"/>
+        <rect x="350" y="222" width="120" height="34" rx="17" fill="var(--line-green)"/>
+        <text x="410" y="244" text-anchor="middle" font-size="14" font-weight="800" style="fill:#fff">LINE</text>
+        <text x="410" y="206" text-anchor="middle" font-size="11" class="mu">申請・使用のお知らせ →</text>
+        <text x="410" y="285" text-anchor="middle" font-size="11" class="mu">← 認定・プレゼント</text>
       </svg>
     </div>
-
-    <h3>画面は4つ（下のタブ）</h3>
-    <div class="grid2">
-      <div class="mini"><div class="ic">🎰</div><b>ガチャ</b><p>マシンを選んでコイン（またはチケット）を入れ、ハンドルを回す。ラインナップと確率もここで見られる。</p></div>
-      <div class="mini"><div class="ic">📖</div><b>ずかん</b><p>集めたアイテムの一覧。未入手をタップすると 💎かけら で交換できる。</p></div>
-      <div class="mini"><div class="ic">🐷</div><b>がまん貯金</b><p>我慢した金額の記録、ご褒美目標、月別グラフ、履歴。</p></div>
-      <div class="mini"><div class="ic">🏅</div><b>ミッション</b><p>レベルと称号、ログイン日数、今日のミッション、実績の一覧。</p></div>
-    </div>
-    <div class="note">ヘッダーの右上 ⚙️ から、サウンド・バイブのON/OFF、バックアップ、遊び方の説明、データ消去ができます。</div>
+    <div class="note blue"><b>ポイント</b>：サーバー（データを預かるコンピューター）はありません。だから無料で、記録が外に漏れる心配もありません。そのかわり、2人の間のやりとりは LINE でリンクを送り合う形になります。</div>
   </section>
 
   <!-- ③ -->
   <section id="s3">
-    <h2><span class="num">3</span>数字の早見表</h2>
-    <p class="lead">どの数字も <code>js/data.js</code> に書いてあり、そこを変えれば調整できます。</p>
+    <h2><span class="num">3</span>2人の役割</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0">👩 ハル（あそぶ人）</h3>
+        <p class="muted small" style="margin:0 0 6px">アプリの4つのタブ</p>
+        <ul style="padding-left:1.2em;margin:0">
+          <li><b>🎰 ガチャ</b>：🎫1枚でハンドルを回してカプセルを開ける</li>
+          <li><b>💪 がまん</b>：本物をがまんしたら金額を選んで申請 → LINE で送る</li>
+          <li><b>🎁 ごほうび</b>：当たったチケットの一覧。「使う」で使用済みに</li>
+          <li><b>📖 ずかん</b>：マスコット・レベル・実績</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">👨 だんなさん（管理する人）</h3>
+        <p class="muted small" style="margin:0 0 6px">管理ページ <code>admin.html</code> でできること</p>
+        <ul style="padding-left:1.2em;margin:0">
+          <li><b>✅ 認定 / 🙅 見送り</b>：申請のリンクを開いて判断。枚数とひとことも変えられる</li>
+          <li><b>🎁 プレゼント</b>：いつでもガチャ券を贈れる</li>
+          <li><b>📊 今月のまとめ</b>：認定した額・使われたご褒美・家計のトク</li>
+          <li><b>🍮 ご褒美の実行</b>：「使います」と届いたら本物を用意する</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-    <h3>🎲 レア度と出やすさ（1台あたり）</h3>
-    <p style="margin:0 0 4px;font-size:.92rem">どのマシンも「ノーマル6種・レア2種・スーパーレア1種・シークレット1種」の10種類です。</p>
+  <!-- ④ -->
+  <section id="s4">
+    <h2><span class="num">4</span>はじめの準備（1回だけ）</h2>
+    <div class="card">
+      <ol class="steps">
+        <li><b><span class="who a">だんなさん</span>管理ページをひらく</b>自分のスマホの <b>Safari</b> で <code>https://kankokei-alt.github.io/gacha-gacha/admin.html</code> を開く。<br>
+          <span class="small" style="color:var(--muted)">※ ホーム画面には追加しないでください（理由は⑨）。ブックマークしておくと便利です。</span></li>
+        <li><b><span class="who a">だんなさん</span>カギを作る</b>呼び名（例: だんなさん）と奥さんの呼び名（ハル）を入れて「🔑 カギを作って管理をはじめる」。</li>
+        <li><b><span class="who a">だんなさん</span>つなぐリンクを送る</b>「つなぐリンクを送る」→「LINEで送る」でハルに送信。</li>
+        <li><b><span class="who h">ハル</span>リンクをタップ</b>「〇〇とつながりました！」と出ればOK。2人の画面に出る <b>あいことば</b>（例: <code>AB12-CD34</code>）が同じか確かめる。</li>
+        <li><b><span class="who h">ハル</span>ホーム画面に追加</b>アプリのほうは Safari の共有ボタン →「ホーム画面に追加」すると、アプリのように使えます。</li>
+      </ol>
+    </div>
+    <div class="note">ハルがアプリをすでにホーム画面に追加している場合、④のリンクは Safari で開くので、アプリには届きません。そのときはリンクをコピーして、アプリの ⚙️ →「📋 コードを貼りつける」から読みこんでください。</div>
+  </section>
+
+  <!-- ⑤ -->
+  <section id="s5">
+    <h2><span class="num">5</span>がまん認定の流れ</h2>
+    <p class="lead">毎回の流れです。LINE の「送信」を押すところだけ、手でやる必要があります。</p>
+    <div class="dg card">
+      <p class="swipe">👉 図は横にスクロールできます</p>
+      <svg class="diagram" viewBox="0 0 820 400" role="img" aria-label="ハルのアプリ、LINE、だんなさんの管理ページの間の申請と認定のやりとり">
+        <defs>
+          <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker>
+        </defs>
+        <rect x="20" y="10" width="200" height="40" rx="12" fill="var(--pink-soft)" stroke="var(--pink)" stroke-width="2"/>
+        <text x="120" y="36" text-anchor="middle" font-size="14" font-weight="800">📱 ハルのアプリ</text>
+        <rect x="310" y="10" width="200" height="40" rx="12" fill="var(--line-green)"/>
+        <text x="410" y="36" text-anchor="middle" font-size="14" font-weight="800" style="fill:#fff">💬 LINE</text>
+        <rect x="600" y="10" width="200" height="40" rx="12" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="700" y="36" text-anchor="middle" font-size="14" font-weight="800">🔑 管理ページ</text>
+        <line x1="120" y1="52" x2="120" y2="390" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 6"/>
+        <line x1="410" y1="52" x2="410" y2="390" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 6"/>
+        <line x1="700" y1="52" x2="700" y2="390" stroke="var(--line)" stroke-width="3" stroke-dasharray="6 6"/>
+
+        <text x="130" y="76" font-size="13" font-weight="800">① 金額を選んで「申請する」</text>
+        <line x1="120" y1="102" x2="404" y2="102" stroke="var(--ink)" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="265" y="96" text-anchor="middle" font-size="11" class="mu">申請リンクを送信</text>
+        <line x1="410" y1="126" x2="694" y2="126" stroke="var(--ink)" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="555" y="120" text-anchor="middle" font-size="11" class="mu">リンクをタップ</text>
+
+        <text x="690" y="160" text-anchor="end" font-size="13" font-weight="800">② 内容を見て「認定する」</text>
+        <text x="690" y="180" text-anchor="end" font-size="11" class="mu">（枚数・ひとことを変えられる）</text>
+        <text x="690" y="200" text-anchor="end" font-size="11" class="mu">秘密カギで「印」をつける</text>
+        <line x1="700" y1="222" x2="416" y2="222" stroke="var(--ink)" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="555" y="216" text-anchor="middle" font-size="11" class="mu">認定リンクを送信</text>
+        <line x1="410" y1="246" x2="126" y2="246" stroke="var(--ink)" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="265" y="240" text-anchor="middle" font-size="11" class="mu">リンクをタップ</text>
+
+        <text x="130" y="280" font-size="13" font-weight="800">③ 公開カギで「印」を確認</text>
+        <text x="130" y="302" font-size="13" font-weight="800">→ 🎫 ガチャ券 +3！</text>
+        <text x="130" y="326" font-size="11" class="mu">同じリンクは2回使えない</text>
+        <rect x="140" y="345" width="540" height="36" rx="12" fill="var(--gold-soft)" stroke="var(--gold)" stroke-width="2"/>
+        <text x="410" y="368" text-anchor="middle" font-size="12">ご褒美チケットを「使う」ときも、同じように LINE で管理ページに知らせが届きます</text>
+      </svg>
+    </div>
+    <div class="grid2">
+      <div class="mini"><div class="ic">🙅</div><b>見送りにしたとき</b><p>ハルのアプリに「今回は見送り」とひとことが届き、ガチャ券は増えません。</p></div>
+      <div class="mini"><div class="ic">📮</div><b>送り忘れ・届かないとき</b><p>ハルは「認定まち」から、だんなさんは「りれき」の「再送」から、もう一度送れます。</p></div>
+    </div>
+  </section>
+
+  <!-- ⑥ -->
+  <section id="s6">
+    <h2><span class="num">6</span>確率と数字の早見表</h2>
+    <p class="lead">数字はすべて <code>js/data.js</code> の先頭に書いてあり、変えられます（⑩）。</p>
+
+    <h3>🎰 1回まわすと何が出る？</h3>
+    <div class="bars">
+      <div class="bar-row"><span><span class="tag t-P">🍮 デザート</span></span><div class="track"><div class="fill" style="width:8%;background:#ff8a5c"></div></div><span>8%</span></div>
+      <div class="bar-row"><span><span class="tag t-P">☕ カフェ</span></span><div class="track"><div class="fill" style="width:2%;background:#ff8a5c"></div></div><span>2%</span></div>
+      <div class="bar-row"><span><span class="tag t-P">🍣 お寿司</span></span><div class="track"><div class="fill" style="width:.6%;background:#ff8a5c"></div></div><span>0.25%</span></div>
+      <div class="bar-row"><span>🧸 はずれ</span><div class="track"><div class="fill" style="width:89.75%;background:#8fa3b8"></div></div><span>89.75%</span></div>
+    </div>
+    <p class="small" style="color:var(--muted);margin:0">どのマシンを選んでも、当たりの確率は同じです。マシンで変わるのは、はずれの時に出るマスコットの種類だけ。</p>
+
+    <h3>🎁 リアルご褒美</h3>
+    <div class="tw"><table>
+      <tr><th>チケット</th><th>中身</th><th>金額</th><th>確率</th><th>だいたい</th></tr>
+      <tr><td>🍮 デザート</td><td>コンビニスイーツをひとつ</td><td class="n">300円</td><td class="n">8%</td><td>12〜13回に1回</td></tr>
+      <tr><td>☕ カフェ</td><td>カフェでケーキセット</td><td class="n">800円</td><td class="n">2%</td><td>50回に1回</td></tr>
+      <tr><td>🍣 お寿司</td><td>お寿司を食べに行く</td><td class="n">4,000円</td><td class="n">0.25%</td><td>400回に1回</td></tr>
+    </table></div>
+    <div class="note green"><b>🛡️ 月の上限 5,000円</b>：その月に当たったご褒美の合計が 5,000円を超えそうになると、その当たりは出なくなります（月が変わるとリセット）。運が良すぎても出費は5,000円まで。</div>
+
+    <h3>🎫 ガチャ券のもらい方</h3>
+    <div class="tw"><table>
+      <tr><th>もらい方</th><th>枚数</th></tr>
+      <tr><td>💪 がまん認定</td><td><b>100円につき1枚</b>（300円 → 3枚）。だんなさんが増減できる</td></tr>
+      <tr><td>🌞 毎日のログイン</td><td>1日1枚、7日連続目は3枚（月に約38枚）</td></tr>
+      <tr><td>🎁 だんなさんのプレゼント</td><td>好きな枚数</td></tr>
+      <tr><td>⭐ レベルアップ</td><td>1枚</td></tr>
+      <tr><td>🏅 実績（全27個・1回だけ）</td><td>1〜10枚</td></tr>
+      <tr><td>🎉 はじめて開いたとき</td><td>5枚</td></tr>
+    </table></div>
+
+    <h3>🧸 はずれのマスコット</h3>
+    <p class="small" style="margin:0 0 6px">どのマシンも10種類（ノーマル6・レア2・スーパーレア1・シークレット1）。はずれの中での出やすさ：</p>
     <div class="bars">
       <div class="bar-row"><span><span class="tag t-N">ノーマル</span></span><div class="track"><div class="fill" style="width:84.5%;background:#8fa3b8"></div></div><span>84.5%</span></div>
       <div class="bar-row"><span><span class="tag t-R">レア</span></span><div class="track"><div class="fill" style="width:12.7%;background:#3b8fd9"></div></div><span>12.7%</span></div>
@@ -284,143 +385,131 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
       <div class="bar-row"><span><span class="tag t-SE">シークレット</span></span><div class="track"><div class="fill" style="width:.7%;background:#9a6bf0"></div></div><span>0.7%</span></div>
     </div>
     <div class="tw"><table>
-      <tr><th>レア度</th><th>1種の確率</th><th>かぶり</th><th>交換</th><th>開封</th></tr>
-      <tr><td><span class="tag t-N">ノーマル</span></td><td class="n">14.1%</td><td class="n">💎1</td><td class="n">💎10</td><td>1タップ<br><small>たまに2</small></td></tr>
-      <tr><td><span class="tag t-R">レア</span></td><td class="n">6.3%</td><td class="n">💎3</td><td class="n">💎30</td><td>1〜2タップ</td></tr>
-      <tr><td><span class="tag t-SR">スーパーレア</span></td><td class="n">2.1%</td><td class="n">💎10</td><td class="n">💎80</td><td>3タップ<br><small>金色に光る</small></td></tr>
-      <tr><td><span class="tag t-SE">シークレット</span></td><td class="n">0.7%</td><td class="n">💎30</td><td class="n">💎200</td><td>3タップ<br><small>虹色に光る</small></td></tr>
+      <tr><th>マシン</th><th>遊べるのは</th><th>シークレット</th></tr>
+      <tr><td>🧁 ぷちスイーツマスコット</td><td>最初から</td><td>伝説の黄金パフェ</td></tr>
+      <tr><td>😺 ねこねこフェイス</td><td>最初から</td><td>金のまねきねこ</td></tr>
+      <tr><td>🍣 まるごとおすしコレクション</td><td>最初から</td><td>金のおすし</td></tr>
+      <tr><td>🐼 どうぶつおひるね</td><td>Lv.3（約10回）</td><td>ちびドラゴン</td></tr>
+      <tr><td>🎐 ほっこり和雑貨</td><td>Lv.5（約30回）</td><td>千年桜</td></tr>
+      <tr><td>🪐 きらきらうちゅう</td><td>Lv.8（約80回）</td><td>なぞのUFO</td></tr>
     </table></div>
-    <p style="font-size:.85rem;color:var(--muted);margin:0">かぶり＝同じものが出たときにもらえる💎かけら ／ 交換＝ずかんで未入手と交換するのに必要な💎</p>
-    <div class="note green"><b>🛟 天井（救済）</b>：同じマシンで<b>9回連続でかぶると、10回目は必ず未入手</b>のアイテムが出ます。ガチャ画面の「あと○回以内にNEW確定」がその残り回数です。</div>
-
-    <h3>🎰 マシンと解放レベル</h3>
-    <div class="tw"><table>
-      <tr><th>マシン</th><th>値段</th><th>解放</th><th>シークレット</th></tr>
-      <tr><td>🧁 ぷちスイーツマスコット</td><td class="n">200</td><td>最初から</td><td>伝説の黄金パフェ</td></tr>
-      <tr><td>😺 ねこねこフェイス</td><td class="n">300</td><td>最初から</td><td>金のまねきねこ</td></tr>
-      <tr><td>🍣 まるごとおすしコレクション</td><td class="n">300</td><td>最初から</td><td>金のおすし</td></tr>
-      <tr><td>🐼 どうぶつおひるね</td><td class="n">400</td><td>Lv.3（目安 約10回）</td><td>ちびドラゴン</td></tr>
-      <tr><td>🎐 ほっこり和雑貨</td><td class="n">400</td><td>Lv.5（目安 約30回）</td><td>千年桜</td></tr>
-      <tr><td>🪐 きらきらうちゅう</td><td class="n">500</td><td>Lv.8（目安 約80回）</td><td>なぞのUFO</td></tr>
-    </table></div>
-    <p style="font-size:.9rem;color:var(--muted)">毎日1台が「本日のおすすめ」になり、<b>20%OFF</b>で回せます（日付で自動的に決まる）。</p>
-
-    <h3>🪙 コインのもらい方</h3>
-    <div class="tw"><table>
-      <tr><th>もらい方</th><th>内容</th></tr>
-      <tr><td>🎁 はじめて開いたとき</td><td>🪙1,000 ＋ 🎫1</td></tr>
-      <tr><td>🐷 がまん貯金に記録</td><td>記録した金額と同じ枚数（300円 → 🪙300）</td></tr>
-      <tr><td>🌞 ログインボーナス</td><td>1日目100 → 2日目150 → 200 → 250 → 300 → 400 → 7日目500＋🎫2（以後くり返し）。<br>さらに<b>毎日 🎫無料チケット1枚</b>。連続が途切れると1日目に戻る</td></tr>
-      <tr><td>📋 今日のミッション</td><td>3回回す 100 ／ 1回がまん 150 ／ ずかんを見る 50 ／ NEWを1つ 100。<br>全部受け取ると ＋200 と 🎫1</td></tr>
-      <tr><td>⭐ レベルアップ</td><td>1レベルごとに 🪙200 ＋ 🎫1</td></tr>
-      <tr><td>🏅 実績（全27個）</td><td>それぞれ 🪙100〜5,000（1回だけ）</td></tr>
-    </table></div>
-
-    <h3>⭐ レベルの上がり方</h3>
-    <p style="font-size:.93rem;margin:0">1回まわすごとに <b>10 XP</b>、NEWなら <b>＋15</b>、さらにレア度に応じて R ＋5 ／ SR ＋20 ／ シークレット ＋50。<br>
-    次のレベルまでに必要なXPは、Lv.1→2 が 100、その後 1レベルごとに 50 ずつ増えます。称号は Lv.20 で「ガチャの女王 👑」、Lv.30 で「伝説のガチャラー」。</p>
-  </section>
-
-  <!-- ④ -->
-  <section id="s4">
-    <h2><span class="num">4</span>1回のガチャで起きていること</h2>
-    <p class="lead">見た目の演出の裏で、プログラムは次の順番で動いています。</p>
-    <div class="card">
-      <ol class="steps">
-        <li><b>🪙 コインを入れる（ボタンを押す）</b>コインが減り、<u>この瞬間に中身が抽選で決まって</u>保存されます。回した回数もここで数えます。</li>
-        <li><b>↻ ハンドルを回す</b>指で右回りに1周（またはタップ4回）。90度ごとに「カチッ」と音と振動。逆回しは効きません（本物と同じ）。</li>
-        <li><b>💊 カプセルが落ちてくる</b>取り出し口にカプセル。レアなものは金色・虹色のカプセルになりやすい（普通のものもたまに金色のフェイントあり）。</li>
-        <li><b>👆 タップして開ける</b>レア度が高いほどタップ回数が増え、途中で光り出します。</li>
-        <li><b>✨ 結果表示</b>ずかんに登録（NEW）または 💎かけら に変換。XP・ミッション・実績をまとめて判定し、レベルアップや実績達成があれば続けて表示します。</li>
-      </ol>
-    </div>
-    <div class="note blue">中身は①の時点で決まって保存されているので、<b>途中でアプリを閉じてもカプセルは消えません</b>。次に開くと、取り出し口にカプセルが残っています。</div>
-  </section>
-
-  <!-- ⑤ -->
-  <section id="s5">
-    <h2><span class="num">5</span>ファイル構成</h2>
-    <p class="lead">全部で10個ほどのファイルだけでできています。いじる可能性があるのはピンク色の2つくらいです。</p>
-<div class="tree">gacha-gacha/
-├─ index.html              <span class="c">画面の骨組み（ヘッダー・タブ・カプセル開封の枠）</span>
-├─ css/
-│  └─ style.css            <span class="c">見た目（色・大きさ・アニメーション）</span>
-├─ js/
-│  ├─ <span class="hl">data.js</span>              <span class="hl">← ゲームの中身。マシン・アイテム・確率・報酬・実績</span>
-│  └─ app.js               <span class="c">動きのプログラム（抽選・ハンドル・保存・画面描画）</span>
-├─ sw.js                   <span class="c">オフラインでも動くための仕組み（Service Worker）</span>
-├─ manifest.webmanifest    <span class="c">ホーム画面に追加したときの名前・アイコン・色</span>
-├─ icons/                  <span class="c">アプリアイコンの画像</span>
-├─ <span class="hl">README.md</span>               <span class="hl">← GitHubのトップに出る説明</span>
-├─ guide.html              <span class="c">この説明書</span>
-└─ .github/workflows/
-   └─ pages.yml            <span class="c">GitHub Actions への指示書（main が変わったら公開）</span></div>
-
-    <h3>役割のイメージ</h3>
-    <div class="grid3">
-      <div class="mini"><div class="ic">🦴</div><b>index.html ＝ 骨組み</b><p>何がどこにあるか</p></div>
-      <div class="mini"><div class="ic">👗</div><b>style.css ＝ 服</b><p>どう見えるか</p></div>
-      <div class="mini"><div class="ic">🧠</div><b>app.js ＝ 頭脳</b><p>どう動くか</p></div>
-      <div class="mini"><div class="ic">📒</div><b>data.js ＝ 設定ノート</b><p>何が入っているか</p></div>
-      <div class="mini"><div class="ic">📴</div><b>sw.js ＝ 留守番係</b><p>電波がなくても動かす</p></div>
-      <div class="mini"><div class="ic">🏷️</div><b>manifest ＝ 名札</b><p>ホーム画面での見た目</p></div>
-    </div>
-  </section>
-
-  <!-- ⑥ -->
-  <section id="s6">
-    <h2><span class="num">6</span>データの保存</h2>
-    <p class="lead">コイン・ずかん・がまん貯金などの記録は、すべて<b>スマホのブラウザの中（localStorage）</b>に保存されます。</p>
-    <div class="grid2">
-      <div class="mini"><div class="ic">🔒</div><b>外に送られない</b><p>GitHub にも、どこのサーバーにも送られません。他の人からは見えません。</p></div>
-      <div class="mini"><div class="ic">📱</div><b>端末ごとに別</b><p>スマホとPCで開くと、それぞれ別のデータになります。共有はされません。</p></div>
-      <div class="mini"><div class="ic">🔄</div><b>アプリを更新しても消えない</b><p>アドレスが同じなら、新しい版を公開してもデータはそのまま残ります。</p></div>
-      <div class="mini"><div class="ic">⚠️</div><b>消えるのはこんなとき</b><p>ブラウザの履歴・サイトデータを消したとき、アプリを削除したとき、iPhoneのSafariで長期間開かなかったとき。</p></div>
-    </div>
-    <div class="note"><b>機種変更・念のための保存</b>：⚙️ →「バックアップ」の「コピー」で長い文字列が出ます。それをメモ帳などに保存しておき、新しいスマホで ⚙️ → 貼りつけ →「読みこむ」で復元できます。</div>
+    <p class="small" style="color:var(--muted)">🛟 同じマシンでマスコットが9回つづけてかぶると、10回目は必ず未入手が出ます。1台コンプで 🎫3枚。</p>
   </section>
 
   <!-- ⑦ -->
   <section id="s7">
-    <h2><span class="num">7</span>更新のしかた</h2>
-    <p class="lead">一番かんたんなのは、Claude に頼んで直してもらい、それを main に反映する方法です。</p>
-    <div class="card">
-      <ol class="steps">
-        <li><b>Claude に頼む</b>Claude が作業用ブランチ（<code>claude/…</code>）で直して push します。</li>
-        <li><b>main に反映する</b>GitHub の「Pull requests」から作業用ブランチ → main へのプルリクエストを作り、「Merge」します（プルリクエスト作成は Claude に頼むこともできます）。</li>
-        <li><b>自動で公開される</b>GitHub Actions が動き、1分ほどで公開サイトが新しくなります。「Actions」タブで緑の ✅ を確認。</li>
-        <li><b>スマホで確認</b>アプリを一度閉じて開き直します。古い画面のままなら、もう一度開き直すと新しい版に切り替わります。</li>
-      </ol>
+    <h2><span class="num">7</span>お金の計算</h2>
+    <p class="lead">「本物を無造作に回されるよりまし」が、計算でも成り立つように作っています。</p>
+    <div class="calc">
+      <div><small>1回まわしたときの<br>ご褒美の平均</small><div class="big-num">約50円</div></div>
+      <div><small>月60回まわすと<br>ご褒美の平均</small><div class="big-num">約3,000円</div></div>
+      <div><small>どんなに当たっても<br>月の上限</small><div class="big-num">5,000円</div></div>
     </div>
-
-    <h3>頼み方の例</h3>
-    <div class="ask">「ご当地グルメ」のガチャマシンを追加して。シークレットは金色の何かで。</div>
-    <div class="ask">シークレットが出にくすぎるので、確率を倍にして。</div>
-    <div class="ask">がまん貯金のボタンに 100円 と 1000円 を追加して。</div>
-    <div class="ask">ハロウィンの期間だけ出る限定マシンを作って。</div>
-
-    <h3>自分で少しだけ変えるなら</h3>
-    <p style="font-size:.93rem;margin:0 0 6px">GitHub の画面上でファイルを開き、鉛筆マーク ✏️ で直接編集できます。<code>js/data.js</code> のアイテムは1行1個で、こう書いてあります：</p>
-    <div class="tree">['pudding', 'とろけるプリン', '🍮', 'N', 'ぷるんとゆれるカラメル色。'],
- <span class="c"> ↑ID(英字・かぶり禁止)  ↑名前      ↑絵文字 ↑レア度 ↑ひとこと</span></div>
-    <div class="note"><b>注意</b>：すでに持っているアイテムの <b>ID（最初の英字）を変えると、ずかんから消えたように見えます</b>。名前・絵文字・ひとことは自由に変えて大丈夫です。<br>
-    変更を確実にスマホへ届けたいときは、<code>sw.js</code> の1行目付近の <code>pocket-gacha-v1</code> を <code>v2</code>、<code>v3</code>… と数字を上げてください。</div>
+    <h3>💡 がまん1回あたりの家計</h3>
+    <div class="tw"><table>
+      <tr><th></th><th>金額</th></tr>
+      <tr><td>本物のガチャを1回がまん</td><td class="n">300円 浮く</td></tr>
+      <tr><td>もらえるガチャ券 3枚で当たるご褒美（平均）</td><td class="n">約150円 使う</td></tr>
+      <tr class="total"><td>差し引き</td><td class="n">約150円 トク</td></tr>
+    </table></div>
+    <div class="note pink">がまんするほど家計は得になります。いちばん出費が出るのは、がまんの認定ではなく<b>毎日のログイン分（月約38回まわせる → 平均約1,900円）</b>です。出費を減らしたいときは、ここ（⑩）を調整します。</div>
+    <h3>📅 1か月のイメージ</h3>
+    <div class="tw"><table>
+      <tr><th>がまんの回数（300円）</th><th>まわせる回数</th><th>ご褒美の平均</th><th>当たりのイメージ</th></tr>
+      <tr><td>がまんなし</td><td class="n">約38回</td><td class="n">約1,900円</td><td>デザート月3回</td></tr>
+      <tr><td>週1回（月4回）</td><td class="n">約50回</td><td class="n">約2,500円</td><td>デザート月4回＋カフェ時々</td></tr>
+      <tr><td>週2回（月8回）</td><td class="n">約62回</td><td class="n">約3,100円</td><td>ほぼ週1デザート＋カフェ月1回</td></tr>
+      <tr><td>週4回（月16回）</td><td class="n">約86回</td><td class="n">約4,300円</td><td>お寿司のチャンスも</td></tr>
+    </table></div>
+    <p class="small" style="color:var(--muted)">※ 平均の話なので、実際の月によって多い・少ないはあります（上限は5,000円）。</p>
   </section>
 
   <!-- ⑧ -->
   <section id="s8">
-    <h2><span class="num">8</span>よくある質問</h2>
-    <details><summary>お金はかかりますか？</summary><p>かかりません。GitHub（公開リポジトリ）・GitHub Pages・GitHub Actions はこの使い方なら無料です。アプリ内のコインも本物のお金とは一切つながっていません。</p></details>
-    <details><summary>他の人に見られますか？</summary><p>アプリのアドレスを知っている人は開けます（リポジトリが公開のため）。ただし<b>遊んだ記録は各自のスマホの中だけ</b>なので、奥様のずかんや貯金を他人が見ることはできません。</p></details>
-    <details><summary>電波がなくても遊べますか？</summary><p>一度開いたことがあれば遊べます（sw.js が中身を覚えておくため）。</p></details>
-    <details><summary>コインが足りなくなったら？</summary><p>リアルで我慢した分を「がまん貯金」に記録するのが基本です。ほかにログインボーナス・毎日の無料チケット・ミッション・実績でも増えます。</p></details>
-    <details><summary>間違えてがまん貯金を記録した</summary><p>がまん貯金タブの「りれき」で × を押すと消せます。その分のコインも差し引かれます。</p></details>
-    <details><summary>最初からやり直したい</summary><p>⚙️ →「データをぜんぶ消す」で初期状態に戻ります（確認が2回出ます。元に戻せません）。</p></details>
-    <details><summary>公開サイトが更新されない</summary><p>① main に反映されているか（作業用ブランチのままでは公開されません）、② Actions タブで ✅ になっているか、③ スマホでアプリを開き直したか、の順に確認してください。</p></details>
+    <h2><span class="num">8</span>ファイル構成</h2>
+    <p class="lead">いじる可能性があるのはピンク色のファイルだけです。</p>
+<div class="tree">gacha-gacha/
+├─ index.html              <span class="c">ハルのアプリの骨組み</span>
+├─ admin.html              <span class="c">だんなさんの管理ページ</span>
+├─ guide.html              <span class="c">この説明書</span>
+├─ css/
+│  └─ style.css            <span class="c">見た目（色・大きさ・アニメーション）</span>
+├─ js/
+│  ├─ <span class="hl">data.js</span>              <span class="hl">← 当たり・確率・上限・ガチャ券の枚数・マスコット・実績</span>
+│  ├─ app.js               <span class="c">アプリの動き（抽選・ハンドル・画面）</span>
+│  ├─ admin.js             <span class="c">管理ページの動き（認定・プレゼント・りれき）</span>
+│  └─ link.js              <span class="c">LINEで送るリンクと「印（電子署名）」</span>
+├─ sw.js                   <span class="c">オフラインでも動くための仕組み</span>
+├─ manifest.webmanifest    <span class="c">ホーム画面に追加したときの名前・アイコン</span>
+├─ icons/                  <span class="c">アプリアイコン</span>
+├─ <span class="hl">README.md</span>               <span class="hl">← GitHubのトップに出る説明</span>
+└─ .github/workflows/
+   └─ pages.yml            <span class="c">main が変わったら自動で公開する指示書</span></div>
+  </section>
+
+  <!-- ⑨ -->
+  <section id="s9">
+    <h2><span class="num">9</span>データと安全</h2>
+    <div class="grid2">
+      <div class="mini"><div class="ic">🔑</div><b>認定はだんなさんにしかできない</b><p>認定リンクには、管理ページの「秘密カギ」で作った印がつきます。秘密カギはだんなさんのスマホから出ないので、ハルが自分で認定リンクを作ることはできません。1文字でも書き換えると無効になります。</p></div>
+      <div class="mini"><div class="ic">🔁</div><b>同じリンクは1回だけ</b><p>認定リンクは申請ごとに1つ。2回タップしてもガチャ券は増えません。</p></div>
+      <div class="mini"><div class="ic">📱</div><b>記録はスマホの中だけ</b><p>ガチャ券・ご褒美・ずかんはハルのスマホに、認定のりれきはだんなさんのスマホに保存。外には送られません（LINEで送るリンクの中身を除く）。</p></div>
+      <div class="mini"><div class="ic">🧭</div><b>「ブラウザごと」に別の記録</b><p>同じスマホでも、Safari・ホーム画面のアプリ・LINEの中のブラウザは、それぞれ別の記録になります。</p></div>
+    </div>
+    <div class="note"><b>だから管理ページは Safari で</b>：秘密カギは Safari の中に保存されます。LINE のリンクは自動で Safari で開くようにしてあるので、管理ページは Safari で使えば迷いません。ホーム画面に追加すると、そちらにはカギがないので認定できなくなります。</div>
+    <div class="note blue"><b>バックアップ</b>：<br>
+      ・ハル：アプリの ⚙️ →「バックアップ」の「コピー」<br>
+      ・だんなさん：管理ページ下の「カギのバックアップ」→「コピー」（人に見せないでください）<br>
+      機種変更のときは、新しいスマホでそれぞれ貼りつけて戻します。</div>
+    <div class="note pink"><b>できないこと</b>：ガチャの抽選はハルのスマホの中で行っています。パソコンに詳しい人がブラウザの記録を直接書き換えることまでは防げません。家庭内の遊びとして割り切った作りです。</div>
+  </section>
+
+  <!-- ⑩ -->
+  <section id="s10">
+    <h2><span class="num">10</span>変えたいとき</h2>
+    <p class="lead">いちばん簡単なのは Claude に頼むことです。直したら GitHub で main に反映すると、1〜2分で公開されます。</p>
+    <h3>頼み方の例</h3>
+    <div class="ask">月の出費をもう少し減らしたいので、ログインボーナスを2日に1枚にして。</div>
+    <div class="ask">お寿司チケットを1万円にして、確率は半分に。</div>
+    <div class="ask">「映画チケット 2,000円 1%」を当たりに追加して。</div>
+    <div class="ask">がまん100円あたりのガチャ券を2枚に増やして。</div>
+    <h3>自分で変えるなら</h3>
+    <p class="small" style="margin:0 0 6px">GitHub で <code>js/data.js</code> を開き、鉛筆マーク ✏️ で編集できます。先頭にこう書いてあります：</p>
+    <div class="tree">{ id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 300, rate: 0.08, desc: 'コンビニスイーツをひとつ' },
+<span class="c">                                                     ↑金額     ↑確率(0.08=8%) ↑説明</span>
+const MONTHLY_CAP = 5000;        <span class="c">← 月の上限（円）</span>
+const TICKETS_PER_100YEN = 1;    <span class="c">← がまん100円あたりのガチャ券</span>
+const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];   <span class="c">← 1〜7日目のログインボーナス</span></div>
+    <div class="note">
+      ・<code>id</code>（最初の英字）は変えないでください。すでに当たったチケットが分からなくなります。<br>
+      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v3</code> の数字を1つ上げると、スマホに確実に届きます。<br>
+      ・数字を変えたら、⑦のお金の計算も変わります。Claude に「月の平均はいくらになる？」と聞けば計算できます。
+    </div>
+    <h3>更新の流れ</h3>
+    <div class="card">
+      <ol class="steps">
+        <li><b>Claude が作業用ブランチで直す</b><code>claude/…</code> というブランチに変更が入ります。</li>
+        <li><b>GitHub で main に反映</b>「Pull requests」→「New pull request」→ base: <code>main</code> ← compare: 作業用ブランチ →「Create pull request」→「Merge pull request」→「Confirm merge」。</li>
+        <li><b>自動で公開</b>「Actions」タブで緑の ✅ になれば完了。</li>
+        <li><b>スマホで開き直す</b>古いままなら、アプリを一度閉じてもう一度開きます。</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ⑪ -->
+  <section id="s11">
+    <h2><span class="num">11</span>こまったとき</h2>
+    <details><summary>認定リンクをタップしたのに、ガチャ券が増えない</summary><p>ハルがアプリをホーム画面に追加して使っている場合、LINE のリンクは Safari で開くので、アプリには届きません。リンクを長押しでコピー → アプリの「がまん」タブ（または ⚙️）の「📋 コードを貼りつける」から読みこんでください。</p></details>
+    <details><summary>管理ページで「先にカギを作ってください」と出る</summary><p>カギを作ったのとは別のブラウザで開いています（LINE の中のブラウザ、ホーム画面のアイコンなど）。Safari で開き直してください。それでもダメなら、前に「カギのバックアップ」をコピーしていれば、初期画面の「前に作ったカギを戻す」から戻せます。</p></details>
+    <details><summary>カギをなくした（機種変更・履歴を消した）</summary><p>新しくカギを作り直して、「つなぐリンク」をもう一度ハルに送ってください。ハルのアプリで「つなぎ先を変えますか？」と出るので「変える」を押します。まだ認定していない申請は、ハルに送り直してもらいます。</p></details>
+    <details><summary>「この申請が見つかりません」と出る</summary><p>申請したときと別のブラウザ（またはアプリ）で認定リンクを開いています。申請したほう（ふだん遊んでいるアプリ）で「コードを貼りつける」から読みこんでください。</p></details>
+    <details><summary>ご褒美が当たらなくなった</summary><p>今月の当たりの合計が上限（5,000円）に近づいています。「ごほうび」タブで今月の合計を確認できます。来月になると元に戻ります。</p></details>
+    <details><summary>アプリが新しくならない</summary><p>① main に反映されているか、② Actions タブで ✅ か、③ アプリを閉じて開き直したか、の順に確認してください。</p></details>
+    <details><summary>お金はかかりますか？</summary><p>かかりません。GitHub・GitHub Pages・LINE の送信はこの使い方なら無料です。かかるのは、当たったご褒美の本物代だけです。</p></details>
   </section>
 
   <footer>
-    <p>🎰 ぽけっとガチャ ・ <a href="./">アプリを開く</a></p>
+    <p>🎰 ぽけっとガチャ ・ <a href="./">アプリを開く</a> ・ <a href="admin.html">管理ページ</a></p>
   </footer>
 </div>
 <button class="theme-btn" id="themeBtn" aria-label="表示の明るさを切り替え">🌓</button>
