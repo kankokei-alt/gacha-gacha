@@ -2,7 +2,8 @@
 (() => {
   'use strict';
 
-  const KEY = 'pocket-gacha-v1';
+  const KEY_V1 = 'pocket-gacha-v1';
+  const KEY = 'pocket-gacha-v2';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -19,28 +20,26 @@
     const d = new Date(iso);
     return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
+  const monthOf = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth() + 1}`; };
+  const thisMonth = () => monthOf(new Date().toISOString());
 
   /* ---------------- 状態 ---------------- */
 
-  const newDaily = (date) => ({ date, pulls: 0, saves: 0, opened: 0, newItems: 0, claimed: {}, allClear: false });
-
   function defaultState() {
     return {
-      v: 1,
-      coins: 1000,
-      tickets: 1,
-      shards: 0,
+      v: 2,
+      tickets: 5,
       xp: 0,
       totalPulls: 0,
       collection: {},
       obtainedAt: {},
       machineStats: {},
       pending: null,
-      savings: [],
-      goal: null,
-      goalsDone: [],
+      prizes: [],      // { id, prize, won, usedAt }
+      gaman: [],       // { id, amount, note, date, status: pending|ok|ng|legacy, tickets, msg, decidedAt }
+      gifts: {},       // 受けとったプレゼントのID
+      admin: null,     // { pub, name, fp, pairedAt }
       login: { last: null, streak: 0, best: 0, total: 0 },
-      daily: newDaily(today()),
       achievements: {},
       selected: 'sweets',
       settings: { sound: true, vib: true },
@@ -49,26 +48,47 @@
     };
   }
 
+  // 旧バージョン（コイン制）のデータを引きつぐ
+  function migrateV1(o) {
+    const s = defaultState();
+    s.tickets = (o.tickets || 0) + Math.floor((o.coins || 0) / 300);
+    ['xp', 'totalPulls', 'collection', 'obtainedAt', 'machineStats', 'selected', 'settings', 'tipDismissed', 'createdAt'].forEach((k) => {
+      if (o[k] !== undefined) s[k] = o[k];
+    });
+    s.login = { ...s.login, ...o.login };
+    Object.keys(o.achievements || {}).forEach((id) => {
+      if (ACHIEVEMENTS.some((a) => a.id === id)) s.achievements[id] = o.achievements[id];
+    });
+    s.gaman = (o.savings || []).map((x) => ({ id: x.id, amount: x.amount, note: x.note, date: x.date, status: 'legacy', tickets: 0 }));
+    return s;
+  }
+
   function load() {
     const base = defaultState();
     try {
       const raw = localStorage.getItem(KEY);
-      if (!raw) return base;
-      const s = JSON.parse(raw);
-      return { ...base, ...s, settings: { ...base.settings, ...s.settings }, login: { ...base.login, ...s.login } };
-    } catch (e) {
-      return base;
-    }
+      if (raw) {
+        const s = JSON.parse(raw);
+        return { ...base, ...s, settings: { ...base.settings, ...s.settings }, login: { ...base.login, ...s.login } };
+      }
+      const old = localStorage.getItem(KEY_V1);
+      if (old) return migrateV1(JSON.parse(old));
+    } catch (e) { /* 壊れたデータは無視 */ }
+    return base;
   }
 
   let S = load();
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 容量不足など */ }
   }
+  save();
 
   const mstat = (id) => (S.machineStats[id] ||= { pulls: 0, sinceNew: 0 });
   const machine = (id) => MACHINES.find((m) => m.id === id) || MACHINES[0];
   const owned = (it) => (S.collection[it.id] || 0) > 0;
+  const adminName = () => (S.admin && S.admin.name) || 'だんなさん';
+  const ticketsFor = (amount) => Math.floor(amount / 100) * TICKETS_PER_100YEN;
+  const monthPrizeTotal = () => S.prizes.filter((p) => monthOf(p.won) === thisMonth()).reduce((a, p) => a + (PRIZE_BY_ID[p.prize]?.value || 0), 0);
 
   /* ---------------- レベル ---------------- */
 
@@ -90,32 +110,18 @@
     S.xp += n;
     const after = level();
     for (let lv = before + 1; lv <= after; lv++) {
-      S.coins += 200;
-      S.tickets += 1;
+      S.tickets += LEVELUP_TICKETS;
       const unlocked = MACHINES.filter((m) => m.unlock === lv);
       afterModal(() => showLevelUp(lv, unlocked));
     }
-  }
-
-  /* ---------------- 本日のおすすめ ---------------- */
-
-  function featuredId() {
-    const t = today();
-    let h = 0;
-    for (const c of t) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-    return MACHINES[h % MACHINES.length].id;
-  }
-  function cost(m) {
-    return m.id === featuredId() ? Math.round((m.price * 0.8) / 10) * 10 : m.price;
   }
 
   /* ---------------- サウンド ---------------- */
 
   const Sound = {
     ctx: null,
-    get on() { return S.settings.sound; },
     ensure() {
-      if (!this.on) return null;
+      if (!S.settings.sound) return null;
       try {
         this.ctx ||= new (window.AudioContext || window.webkitAudioContext)();
         if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -155,6 +161,7 @@
         R: [523, 659, 784, 1047],
         SR: [523, 659, 784, 1047, 1319, 1568],
         SE: [392, 523, 659, 784, 1047, 1319, 1568, 2093],
+        PRIZE: [523, 659, 784, 1047, 784, 1047, 1319, 1568, 2093],
       };
       (seqs[r] || seqs.N).forEach((f, i) => this.tone(f, 0.25, { type: 'triangle', vol: 0.12, at: i * 0.08 }));
     },
@@ -189,18 +196,18 @@
     }
   }
 
-  function emo(it, cls = '') {
-    return `<span class="emo ${it.fx ? `fx-${it.fx}` : ''} ${cls}">${it.emoji}</span>`;
-  }
+  const emo = (it, cls = '') => `<span class="emo ${it.fx ? `fx-${it.fx}` : ''} ${cls}">${it.emoji}</span>`;
 
   /* ---------------- モーダル ---------------- */
 
   const modalQueue = [];
   let modalOpen = false;
+  let overlayOpen = false;
 
   function openModal(html, onMount) {
     $('#modalBody').innerHTML = html;
     $('#modal').classList.remove('hidden');
+    $('#modalBody').scrollTop = 0;
     modalOpen = true;
     $$('[data-close]', $('#modalBody')).forEach((b) => b.addEventListener('click', closeModal));
     if (onMount) onMount($('#modalBody'));
@@ -227,10 +234,11 @@
     ACHIEVEMENTS.forEach((a) => {
       if (S.achievements[a.id] || !a.test(S)) return;
       S.achievements[a.id] = new Date().toISOString();
-      S.coins += a.reward;
+      S.tickets += a.reward;
       setTimeout(() => {
-        toast(`<b>🏅 実績「${esc(a.name)}」達成！</b><br>🪙 +${fmt(a.reward)}`, 'gold');
+        toast(`<b>🏅 実績「${esc(a.name)}」達成！</b><br>🎫 ガチャ券 +${a.reward}`, 'gold');
         Sound.chime();
+        renderHeader();
       }, 400);
     });
     save();
@@ -240,7 +248,6 @@
 
   function checkDay() {
     const t = today();
-    if (S.daily.date !== t) S.daily = newDaily(t);
     if (S.login.last === t) return;
     const gap = S.login.last ? daysBetween(S.login.last, t) : null;
     S.login.streak = gap === 1 ? S.login.streak + 1 : 1;
@@ -248,27 +255,25 @@
     S.login.total += 1;
     S.login.last = t;
     const idx = (S.login.streak - 1) % 7;
-    const rw = LOGIN_REWARDS[idx];
-    S.coins += rw.coins;
-    S.tickets += 1 + (rw.tickets || 0);
+    S.tickets += LOGIN_TICKETS[idx];
     save();
     checkAchievements();
-    afterModal(() => showLoginBonus(idx, rw));
+    afterModal(() => showLoginBonus(idx));
   }
 
-  function showLoginBonus(idx, rw) {
-    const stamps = LOGIN_REWARDS.map((r, i) => `
+  function showLoginBonus(idx) {
+    const stamps = LOGIN_TICKETS.map((n, i) => `
       <div class="stamp ${i < idx ? 'done' : ''} ${i === idx ? 'today' : ''}">
         <small>${i + 1}日目</small>
-        <span>${i < idx ? '💮' : i === 6 ? '🎁' : '🪙'}</span>
-        <small>${r.coins}${r.tickets ? `+🎫${r.tickets}` : ''}</small>
+        <span>${i < idx ? '💮' : i === 6 ? '🎁' : '🎫'}</span>
+        <small>${n}枚</small>
       </div>`).join('');
     openModal(`
       <h3 class="center">🌞 ログインボーナス</h3>
       <p class="center big-text">${S.login.streak}日連続ログイン！</p>
       <div class="stamps">${stamps}</div>
-      <p class="center reward-line">🪙 +${rw.coins}　🎫 +${1 + (rw.tickets || 0)}</p>
-      <p class="center muted">毎日きてくれると、無料チケットがもらえるよ</p>
+      <p class="center reward-line">🎫 ガチャ券 +${LOGIN_TICKETS[idx]}</p>
+      <p class="center muted small">本物のガチャをがまんして認定されると、もっともらえるよ</p>
       <button class="btn primary wide" data-close>うけとる</button>`);
     Sound.chime();
     renderAll();
@@ -281,7 +286,7 @@
       <h3 class="center">🎊 レベルアップ！</h3>
       <p class="center lvup">Lv.${lv}</p>
       <p class="center">称号: <b>${esc(titleFor(lv))}</b></p>
-      <p class="center reward-line">🪙 +200　🎫 +1</p>
+      <p class="center reward-line">🎫 ガチャ券 +${LEVELUP_TICKETS}</p>
       ${unlocked.map((m) => `<div class="unlock-card" style="--c:${m.color}">${m.icon} 新しいガチャ<br><b>${esc(m.name)}</b> が登場！</div>`).join('')}
       <button class="btn primary wide" data-close>やったー！</button>`);
     renderAll();
@@ -323,7 +328,8 @@
       const off = ((176 - y) / 24) % 2 ? 12 : 0;
       for (let x = CX - half + off; x <= CX + half; x += 25) {
         const jx = x + (rnd() - 0.5) * 6, jy = y + (rnd() - 0.5) * 6;
-        caps += `<g transform="translate(${jx.toFixed(1)} ${jy.toFixed(1)}) rotate(${Math.floor(rnd() * 360)})">${capsuleSVG(CAPSULE_COLORS[Math.floor(rnd() * CAPSULE_COLORS.length)], 12)}</g>`;
+        const col = rnd() < 0.08 ? 'gold' : CAPSULE_COLORS[Math.floor(rnd() * CAPSULE_COLORS.length)];
+        caps += `<g transform="translate(${jx.toFixed(1)} ${jy.toFixed(1)}) rotate(${Math.floor(rnd() * 360)})">${capsuleSVG(col, 12)}</g>`;
       }
     }
     return `
@@ -350,10 +356,10 @@
   <rect x="16" y="188" width="208" height="18" rx="9" fill="${shade(c, -25)}"/>
   <rect x="26" y="200" width="188" height="155" rx="18" fill="url(#bodyGrad)"/>
   <rect x="44" y="216" width="152" height="34" rx="9" fill="#fff"/>
-  <text x="120" y="239" text-anchor="middle" font-size="16" font-weight="800" fill="${shade(c, -45)}">${m.icon} ${cost(m)}円</text>
+  <text x="120" y="239" text-anchor="middle" font-size="15" font-weight="800" fill="${shade(c, -45)}">${m.icon} 🎫1枚</text>
   <rect x="150" y="262" width="44" height="50" rx="9" fill="#ffffffdd"/>
   <rect x="169" y="270" width="6" height="24" rx="3" fill="#555"/>
-  <text x="172" y="306" font-size="9" font-weight="800" text-anchor="middle" fill="#777">COIN</text>
+  <text x="172" y="306" font-size="8" font-weight="800" text-anchor="middle" fill="#777">TICKET</text>
   <g id="handleRot" transform="rotate(0 ${HX} ${HY})">
     <circle cx="${HX}" cy="${HY}" r="34" fill="#f6f6f6" stroke="#cfcfcf" stroke-width="3"/>
     <rect x="${HX - 36}" y="${HY - 8}" width="72" height="16" rx="8" fill="#d8d8d8" stroke="#b3b3b3" stroke-width="2"/>
@@ -374,14 +380,17 @@
 
   const turn = { phase: 'idle', angle: 0, target: 0, dragging: false, lastA: 0, moved: 0, raf: 0 };
 
-  function pickCapsuleColor(it) {
-    if (it.rarity === 'SE' && Math.random() < 0.6) return 'rainbow';
-    if (it.rarity === 'SR' && Math.random() < 0.5) return 'gold';
-    if (it.rarity === 'N' && Math.random() < 0.03) return 'gold'; // たまにフェイク
-    return rand(CAPSULE_COLORS);
+  function rollPrize() {
+    const spent = monthPrizeTotal();
+    let r = Math.random();
+    for (const p of PRIZES) {
+      if (r < p.rate) return spent + p.value <= MONTHLY_CAP ? p : null;
+      r -= p.rate;
+    }
+    return null;
   }
 
-  function roll(m) {
+  function rollItem(m) {
     const st = mstat(m.id);
     const missing = m.items.filter((it) => !owned(it));
     let pool = m.items;
@@ -396,7 +405,16 @@
     return { item: pool[pool.length - 1], pity };
   }
 
-  function startPull(useTicket) {
+  function capColorFor(p) {
+    if (p.kind === 'prize') return p.prize === 'sushi' ? 'rainbow' : 'gold';
+    const it = ITEMS[p.item];
+    if (it.rarity === 'SE' && Math.random() < 0.6) return 'rainbow';
+    if (it.rarity === 'SR' && Math.random() < 0.5) return 'gold';
+    if (Math.random() < 0.04) return 'gold'; // フェイント
+    return rand(CAPSULE_COLORS);
+  }
+
+  function startPull() {
     Sound.ensure();
     if (S.pending) {
       hint(S.pending.dropped ? 'さきにカプセルをあけてね！' : 'ハンドルを回してね！', true);
@@ -404,22 +422,21 @@
     }
     const m = machine(S.selected);
     if (!isUnlocked(m)) return;
-    const price = cost(m);
-    if (useTicket) {
-      if (S.tickets < 1) { toast('🎫 チケットがありません'); return; }
-      S.tickets -= 1;
-    } else {
-      if (S.coins < price) {
-        toast('🪙 コインが足りません<br><small>「がまん貯金」やミッションでもらえるよ</small>');
-        return;
-      }
-      S.coins -= price;
+    if (S.tickets < 1) {
+      showNoTickets();
+      return;
     }
-    const { item, pity } = roll(m);
-    S.pending = { machine: m.id, item: item.id, cap: pickCapsuleColor(item), pity, dropped: false };
+    S.tickets -= 1;
+    const prize = rollPrize();
+    if (prize) {
+      S.pending = { machine: m.id, kind: 'prize', prize: prize.id, dropped: false };
+    } else {
+      const { item, pity } = rollItem(m);
+      S.pending = { machine: m.id, kind: 'item', item: item.id, pity, dropped: false };
+    }
+    S.pending.cap = capColorFor(S.pending);
     mstat(m.id).pulls += 1;
     S.totalPulls += 1;
-    S.daily.pulls += 1;
     save();
     Sound.coin();
     vib(20);
@@ -429,10 +446,23 @@
     $('#machineWrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  function showNoTickets() {
+    openModal(`
+      <div class="center">
+        <div class="praise-emo">🎫</div>
+        <h3>ガチャ券がなくなっちゃった</h3>
+        <p>本物のガチャを <b>1回がまん</b>すると<br><b>${ticketsFor(300)}回</b> まわせるよ！（300円の場合）</p>
+        <p class="muted small">ほかにも、毎日のログインや実績でもらえます</p>
+        <button class="btn primary wide" id="goGaman">がまんを申請する 💪</button>
+        <button class="btn wide" data-close>とじる</button>
+      </div>`, (root) => {
+      $('#goGaman', root).addEventListener('click', () => { closeModal(); switchTab('gaman'); });
+    });
+  }
+
   function setPhase(p) {
     turn.phase = p;
-    const wrap = $('#machineWrap');
-    wrap.dataset.phase = p;
+    $('#machineWrap').dataset.phase = p;
     if (p === 'ready') {
       turn.angle = 0; turn.target = 0;
       setHandle(0);
@@ -515,8 +545,8 @@
     hit.addEventListener('pointerdown', (e) => {
       Sound.ensure();
       if (turn.phase === 'idle') {
-        hint('まずは下のボタンでコインを入れてね 🪙', true);
-        $('#btnCoin').classList.remove('nudge'); void $('#btnCoin').offsetWidth; $('#btnCoin').classList.add('nudge');
+        hint('まずは下のボタンでガチャ券を入れてね 🎫', true);
+        $('#btnPull').classList.remove('nudge'); void $('#btnPull').offsetWidth; $('#btnPull').classList.add('nudge');
         return;
       }
       if (turn.phase !== 'ready') return;
@@ -558,18 +588,30 @@
 
   /* ---------------- カプセルを開ける ---------------- */
 
-  let overlayOpen = false;
-
   function openPending() {
     const p = S.pending;
+    $('#dropCap').classList.add('hidden');
+    if (p.kind === 'prize') {
+      const prize = PRIZE_BY_ID[p.prize];
+      showCapsule({ emoji: prize.emoji, level: 'PRIZE', cap: p.cap }, () => {
+        S.pending = null;
+        const rec = { id: Link.uid(), prize: prize.id, won: new Date().toISOString(), usedAt: null };
+        S.prizes.unshift(rec);
+        save();
+        addXp(40);
+        checkAchievements();
+        setPhase('idle');
+        return { kind: 'prize', prize, rec };
+      });
+      return;
+    }
     const it = ITEMS[p.item];
     if (!it) { S.pending = null; save(); setPhase('idle'); renderGacha(); return; }
-    $('#dropCap').classList.add('hidden');
-    showCapsule(it, p.cap, () => {
+    showCapsule({ emoji: it.emoji, level: it.rarity, cap: p.cap }, () => {
       S.pending = null;
       const res = grantItem(it);
       setPhase('idle');
-      return { ...res, pity: p.pity, again: true };
+      return { kind: 'item', it, ...res, pity: p.pity };
     });
   }
 
@@ -577,37 +619,33 @@
     const isNew = !owned(it);
     const st = mstat(it.machine);
     S.collection[it.id] = (S.collection[it.id] || 0) + 1;
-    let shards = 0;
     if (isNew) {
       S.obtainedAt[it.id] = new Date().toISOString();
-      S.daily.newItems += 1;
       st.sinceNew = 0;
     } else {
-      shards = RARITY[it.rarity].shards;
-      S.shards += shards;
       st.sinceNew += 1;
     }
     save();
     addXp(10 + (isNew ? 15 : 0) + RARITY[it.rarity].xp);
     checkAchievements();
-    return { isNew, shards };
+    return { isNew };
   }
 
-  function showCapsule(it, capColor, onReveal) {
+  // level: N/R/SR/SE/PRIZE（演出の強さ）
+  function showCapsule({ emoji, level: lvl, cap: capColor }, onReveal) {
     overlayOpen = true;
-    const ov = $('#openOverlay');
     const cap = $('#bigCap');
-    const r = it.rarity;
-    let taps = r === 'N' ? (Math.random() < 0.25 ? 2 : 1) : r === 'R' ? (Math.random() < 0.5 ? 2 : 1) : 3;
+    const big = lvl === 'SR' || lvl === 'SE' || lvl === 'PRIZE';
+    const taps = lvl === 'N' ? (Math.random() < 0.25 ? 2 : 1) : lvl === 'R' ? (Math.random() < 0.5 ? 2 : 1) : 3;
     cap.className = 'big-cap';
     cap.style.setProperty('--cap', capColor === 'gold' ? 'linear-gradient(90deg,#ffe680,#ffbf00,#ffdf6b)'
       : capColor === 'rainbow' ? 'linear-gradient(90deg,#ff6b6b,#ffd166,#06d6a0,#4cc9f0,#b388ff)' : capColor);
-    $('#peek').innerHTML = it.emoji;
+    $('#peek').innerHTML = emoji;
     $('#rays').className = 'rays';
     $('#result').classList.add('hidden');
     $('#openHint').classList.remove('hidden');
     $('#openHint').textContent = 'タップしてあけよう！';
-    ov.classList.remove('hidden');
+    $('#openOverlay').classList.remove('hidden');
     requestAnimationFrame(() => cap.classList.add('enter'));
     let tapCount = 0;
     let done = false;
@@ -615,14 +653,14 @@
     const onTap = () => {
       if (done) return;
       tapCount++;
-      cap.classList.remove('wiggle', 'wiggle2', 'wiggle3');
+      cap.classList.remove('wiggle2', 'wiggle3');
       void cap.offsetWidth;
       if (tapCount < taps) {
         cap.classList.add(tapCount === 1 ? 'wiggle2' : 'wiggle3');
         Sound.tap();
         vib(25 * tapCount);
-        if (tapCount === 2 && (r === 'SR' || r === 'SE')) {
-          cap.classList.add(r === 'SE' ? 'glow-rainbow' : 'glow-gold');
+        if (tapCount === 2 && big) {
+          cap.classList.add(lvl === 'SR' ? 'glow-gold' : 'glow-rainbow');
           $('#openHint').textContent = 'な、なにか光ってる…!?';
         } else {
           $('#openHint').textContent = 'もうちょっと…！';
@@ -634,40 +672,65 @@
       cap.classList.add('opened');
       $('#openHint').classList.add('hidden');
       Sound.pop();
-      vib(r === 'N' ? 30 : [40, 60, 40, 60, 80]);
+      vib(lvl === 'N' ? 30 : [40, 60, 40, 60, 80]);
       const res = onReveal();
-      setTimeout(() => showResult(it, res), 380);
+      setTimeout(() => (res.kind === 'prize' ? showPrizeResult(res) : showItemResult(res)), 380);
     };
     cap.addEventListener('click', onTap);
   }
 
-  function showResult(it, res) {
+  function resultButtons() {
+    return `<div class="res-buttons">
+      <button class="btn primary" id="resAgain" ${S.tickets >= 1 ? '' : 'disabled'}>もう1回 🎫1</button>
+      <button class="btn" id="resClose">とじる</button>
+    </div>`;
+  }
+  function bindResult() {
+    $('#resClose').addEventListener('click', closeOverlay);
+    $('#resAgain')?.addEventListener('click', () => { closeOverlay(); startPull(); });
+  }
+
+  function showItemResult({ it, isNew, pity }) {
     const r = it.rarity;
     const m = machine(it.machine);
     $('#rays').className = `rays on r-${r}`;
     Sound.fanfare(r);
-    if (res.isNew && r !== 'N') confetti(r === 'SE' ? 140 : r === 'SR' ? 90 : 40);
-    else if (res.isNew) confetti(25);
-    const price = cost(m);
-    const canAgain = res.again && S.coins >= price && isUnlocked(m);
-    const box = $('#result');
-    box.innerHTML = `
+    if (isNew) confetti(r === 'SE' ? 140 : r === 'SR' ? 90 : r === 'R' ? 40 : 20);
+    $('#result').innerHTML = `
       <div class="res-card r-${r}">
         <span class="badge r-${r}">${RARITY[r].label}</span>
         <div class="res-emo">${emo(it)}</div>
-        ${res.isNew ? '<div class="new-badge">NEW!</div>' : `<div class="dup">かぶっちゃった… 💎 かけら +${res.shards}</div>`}
+        ${isNew ? '<div class="new-badge">NEW!</div>' : '<div class="dup">もう持ってるマスコット</div>'}
         <h3>${esc(it.name)}</h3>
         <p class="desc">${esc(it.desc)}</p>
-        ${res.pity ? '<p class="pity-msg">🛟 天井ボーナス発動！</p>' : ''}
-        <p class="muted">${esc(m.name)} ${ownedIn(S, m.items)}/${m.items.length}</p>
+        ${pity ? '<p class="pity-msg">🛟 天井ボーナスで NEW 確定！</p>' : ''}
+        <p class="muted small">今回はご褒美ははずれ… ずかん ${esc(m.name)} ${ownedIn(S, m.items)}/${m.items.length}</p>
+      </div>${resultButtons()}`;
+    $('#result').classList.remove('hidden');
+    bindResult();
+    renderAll();
+  }
+
+  function showPrizeResult({ prize }) {
+    $('#rays').className = `rays on r-${prize.id === 'sushi' ? 'SE' : 'SR'}`;
+    Sound.fanfare('PRIZE');
+    confetti(prize.id === 'sushi' ? 200 : 120);
+    $('#result').innerHTML = `
+      <div class="res-card prize-card">
+        <div class="prize-flag">🎉 当たり！🎉</div>
+        <div class="ticket-big">
+          <div class="tb-emo">${prize.emoji}</div>
+          <div><b>${esc(prize.name)}</b><small>${esc(prize.desc)}</small></div>
+        </div>
+        <p class="desc">本物のご褒美がもらえるよ！<br>「ごほうび」タブに入りました</p>
       </div>
       <div class="res-buttons">
-        ${res.again ? `<button class="btn primary" id="resAgain" ${canAgain ? '' : 'disabled'}>もう1回 🪙${price}</button>` : ''}
+        <button class="btn primary" id="resPrize">ごほうびを見る</button>
         <button class="btn" id="resClose">とじる</button>
       </div>`;
-    box.classList.remove('hidden');
+    $('#result').classList.remove('hidden');
     $('#resClose').addEventListener('click', closeOverlay);
-    $('#resAgain')?.addEventListener('click', () => { closeOverlay(); startPull(false); });
+    $('#resPrize').addEventListener('click', () => { closeOverlay(); switchTab('prize'); });
     renderAll();
   }
 
@@ -685,10 +748,9 @@
     $('#lvNum').textContent = `Lv.${li.lv}`;
     $('#lvTitle').textContent = titleFor(li.lv);
     $('#xpFill').style.width = `${(li.cur / li.need) * 100}%`;
-    $('#coins').textContent = fmt(S.coins);
     $('#tickets').textContent = fmt(S.tickets);
-    $('#shards').textContent = fmt(S.shards);
-    $('#missionDot').classList.toggle('hidden', !hasClaimable());
+    $('#prizeDot').classList.toggle('hidden', !S.prizes.some((p) => !p.usedAt));
+    $('#gamanDot').classList.toggle('hidden', !S.gaman.some((g) => g.status === 'pending'));
   }
 
   /* ---------------- 描画: ガチャ ---------------- */
@@ -697,57 +759,55 @@
 
   function renderGacha() {
     const m = machine(S.selected);
-    const fid = featuredId();
     $('#machinePicker').innerHTML = MACHINES.map((x) => {
       const lock = !isUnlocked(x);
       return `<button class="pick ${x.id === m.id ? 'active' : ''} ${lock ? 'locked' : ''}" data-id="${x.id}" style="--c:${x.color}">
         <span class="pick-icon">${lock ? '🔒' : x.icon}</span>
         <span class="pick-name">${lock ? `Lv.${x.unlock}で解放` : esc(x.name)}</span>
         <span class="pick-prog">${lock ? '' : `${ownedIn(S, x.items)}/${x.items.length}`}</span>
-        ${x.id === fid && !lock ? '<span class="pick-sale">SALE</span>' : ''}
       </button>`;
     }).join('');
 
     $('#machineName').textContent = m.name;
-    $('#featuredBadge').classList.toggle('hidden', m.id !== fid);
-    const key = `${m.id}:${cost(m)}`;
-    if (renderedMachine !== key) {
+    if (renderedMachine !== m.id) {
       $('#machineWrap').innerHTML = machineSVG(m);
-      $('#machineWrap').style.setProperty('--c', m.color);
-      renderedMachine = key;
+      renderedMachine = m.id;
       bindMachine();
       if (S.pending) setPhase(S.pending.dropped ? 'dropped' : 'ready');
       else setPhase('idle');
     }
-    document.documentElement.style.setProperty('--machine', m.color);
 
-    const st = mstat(m.id);
-    const got = ownedIn(S, m.items);
-    const complete = got === m.items.length;
-    const left = PITY - st.sinceNew;
-    $('#machineInfo').innerHTML = `
-      <div class="info-chip">📖 ${got}/${m.items.length} ${complete ? '🎉コンプ！' : ''}</div>
-      ${complete ? '' : `<div class="info-chip ${left <= 1 ? 'hot' : ''}">🛟 ${left <= 1 ? '次はNEW確定！' : `あと${left}回以内にNEW確定`}</div>`}
-      <div class="info-chip">🔄 ${st.pulls}回</div>`;
+    const left = Math.max(0, MONTHLY_CAP - monthPrizeTotal());
+    const unused = S.prizes.filter((p) => !p.usedAt).length;
+    $('#prizeStrip').innerHTML = `
+      <div class="prize-strip-title">🎁 当たるかも！リアルご褒美</div>
+      <div class="prize-chips">${PRIZES.map((p) => `<span class="pchip ${left < p.value ? 'off' : ''}">${p.emoji} ${esc(p.name.replace('チケット', ''))}</span>`).join('')}</div>
+      ${unused ? `<button class="link" id="goPrize">🎟️ 使っていないご褒美が ${unused}枚 あるよ ›</button>` : ''}`;
+    $('#goPrize')?.addEventListener('click', () => switchTab('prize'));
 
-    const price = cost(m);
     const busy = !!S.pending;
-    $('#btnCoin').innerHTML = busy ? (S.pending.dropped ? '👇 カプセルをあけよう' : '↻ ハンドルを回そう') : `🪙 ${fmt(price)} でまわす`;
-    $('#btnCoin').disabled = !busy && S.coins < price;
-    $('#btnTicket').innerHTML = `🎫 無料 <small>×${S.tickets}</small>`;
-    $('#btnTicket').disabled = busy || S.tickets < 1;
+    const btn = $('#btnPull');
+    btn.innerHTML = busy ? (S.pending.dropped ? '👇 カプセルをあけよう' : '↻ ハンドルを回そう') : `🎫 1枚でまわす <small>（のこり ${S.tickets}枚）</small>`;
+    btn.classList.toggle('empty', !busy && S.tickets < 1);
 
     const totalW = m.items.reduce((a, it) => a + RARITY[it.rarity].weight, 0);
-    $('#lineup').innerHTML = `<summary>ラインナップと出やすさ</summary>
+    const missRate = 1 - PRIZES.reduce((a, p) => a + p.rate, 0);
+    $('#lineup').innerHTML = `<summary>中身と出やすさ</summary>
+      <p class="lu-head">🎁 リアルご褒美（どのマシンでも同じ）</p>
+      <div class="lineup-grid">${PRIZES.map((p) => `<div class="lu">
+          <span class="lu-emo">${p.emoji}</span><span class="lu-name">${esc(p.name)}</span>
+          <span class="badge prize">当たり</span><span class="lu-p">${(p.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%</span></div>`).join('')}</div>
+      <p class="lu-head">🧸 はずれのときのマスコット（ずかんに登録）</p>
       <div class="lineup-grid">${m.items.map((it) => {
-        const p = ((RARITY[it.rarity].weight / totalW) * 100).toFixed(1);
+        const p = ((RARITY[it.rarity].weight / totalW) * missRate * 100).toFixed(1);
         const show = it.rarity !== 'SE' || owned(it);
         return `<div class="lu ${owned(it) ? '' : 'unowned'}">
           <span class="lu-emo">${show ? emo(it) : '❔'}</span>
           <span class="lu-name">${show ? esc(it.name) : 'シークレット'}</span>
           <span class="badge r-${it.rarity}">${RARITY[it.rarity].short}</span>
           <span class="lu-p">${p}%</span></div>`;
-      }).join('')}</div>`;
+      }).join('')}</div>
+      <p class="muted small">ご褒美は1か月の合計が ${fmt(MONTHLY_CAP)}円分 になるまで当たります。</p>`;
 
     renderInstallTip();
   }
@@ -762,8 +822,7 @@
     save();
     renderGacha();
   });
-  $('#btnCoin').addEventListener('click', () => startPull(false));
-  $('#btnTicket').addEventListener('click', () => startPull(true));
+  $('#btnPull').addEventListener('click', startPull);
 
   function renderInstallTip() {
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -775,11 +834,321 @@
     $('.tip-x', box).addEventListener('click', () => { S.tipDismissed = true; save(); renderInstallTip(); });
   }
 
+  /* ---------------- 描画: がまん ---------------- */
+
+  let selectedAmount = 300;
+
+  function renderGaman() {
+    const total = gamanTotal(S);
+    const usedValue = S.prizes.filter((p) => p.usedAt).reduce((a, p) => a + (PRIZE_BY_ID[p.prize]?.value || 0), 0);
+    const pending = S.gaman.filter((g) => g.status === 'pending');
+    const hist = S.gaman.filter((g) => g.status !== 'pending').slice(0, 40);
+
+    const form = S.admin ? `
+      <div class="card">
+        <h3>💪 本物のガチャをがまんした！</h3>
+        <p class="muted small">${esc(adminName())}に認定されると、<b>100円につき🎫${TICKETS_PER_100YEN}枚</b>もらえます</p>
+        <div class="amount-grid">
+          ${[200, 300, 400, 500].map((a) => `<button class="btn amount ${a === selectedAmount ? 'sel' : ''}" data-amt="${a}">${a}円</button>`).join('')}
+          <button class="btn amount ${[200, 300, 400, 500].includes(selectedAmount) ? '' : 'sel'}" data-amt="custom">${[200, 300, 400, 500].includes(selectedAmount) ? 'その他' : `${fmt(selectedAmount)}円`}</button>
+        </div>
+        <input id="gamanNote" placeholder="どこで？（例: 駅前のねこガチャ）" maxlength="40">
+        <button class="btn primary wide big" id="gamanSend">🎫${ticketsFor(selectedAmount)}枚分を申請する</button>
+      </div>` : `
+      <div class="card setup">
+        <h3>🤝 まずは${esc(adminName())}とつなげよう</h3>
+        <ol class="howto-steps">
+          <li>${esc(adminName())}がスマホで <b>管理ページ</b> をひらく<br><code>${esc(location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, ''))}admin.html</code></li>
+          <li>管理ページの「アプリとつなぐ」でLINEにリンクが届く</li>
+          <li>そのリンクをタップ（またはコピーして下のボタンから貼りつけ）</li>
+        </ol>
+        <button class="btn wide" id="pasteCode">📋 コードを貼りつける</button>
+      </div>`;
+
+    $('#tab-gaman').innerHTML = `
+      <div class="card hero pig">
+        <small>本物をがまんしたお金（認定ずみ）</small>
+        <div class="hero-num">${fmt(total)}<small>円</small></div>
+        <div class="balance">
+          <div><small>ご褒美に使った</small><b>${fmt(usedValue)}円</b></div>
+          <div><small>家計のトク</small><b class="${total - usedValue >= 0 ? 'plus' : 'minus'}">${total - usedValue >= 0 ? '+' : ''}${fmt(total - usedValue)}円</b></div>
+        </div>
+      </div>
+      ${form}
+      ${pending.length ? `<div class="card"><h3>⏳ 認定まち</h3><ul class="glist">${pending.map((g) => `
+        <li><div><b>${fmt(g.amount)}円</b> <span class="muted small">${fmtDate(g.date)}</span><br><span class="small">${esc(g.note || 'リアルガチャ')}</span></div>
+          <div class="gbtns"><button class="btn mini" data-resend="${g.id}">もう一度送る</button><button class="btn mini" data-cancel="${g.id}">取り消し</button></div></li>`).join('')}</ul>
+        <button class="btn wide" id="pasteCode2">📋 認定コードを貼りつける</button>
+        <p class="muted small">認定のリンクをタップしても反映されないときは、リンクをコピーしてこのボタンから貼りつけてね。</p></div>` : ''}
+      <div class="card"><h3>📝 りれき</h3>${hist.length ? `<ul class="glist">${hist.map((g) => `
+        <li><div><b>${fmt(g.amount)}円</b> <span class="muted small">${fmtDate(g.date)}</span><br><span class="small">${esc(g.note || 'リアルガチャ')}</span>
+          ${g.msg ? `<br><span class="small msg">💬 ${esc(g.msg)}</span>` : ''}</div>
+          <span class="status s-${g.status}">${{ ok: `認定 🎫+${g.tickets}`, ng: '見送り', legacy: '旧記録', gift: 'プレゼント' }[g.status] || ''}</span></li>`).join('')}</ul>` : '<p class="muted">まだ記録がありません</p>'}</div>`;
+  }
+
+  $('#tab-gaman').addEventListener('click', async (e) => {
+    const amt = e.target.closest('[data-amt]');
+    if (amt) {
+      let a = amt.dataset.amt;
+      if (a === 'custom') {
+        const v = prompt('がまんした金額（円）を入力してね', '300');
+        if (v === null) return;
+        a = parseInt(String(v).replace(/[^\d]/g, ''), 10);
+        if (!a || a < 100 || a > 100000) { toast('100円以上で入力してね'); return; }
+      }
+      selectedAmount = Number(a);
+      const note = $('#gamanNote')?.value || '';
+      renderGaman();
+      $('#gamanNote').value = note;
+      return;
+    }
+    if (e.target.id === 'gamanSend') {
+      const g = { id: Link.uid(), amount: selectedAmount, note: $('#gamanNote').value.trim(), date: new Date().toISOString(), status: 'pending', tickets: 0 };
+      S.gaman.unshift(g);
+      save();
+      Sound.coin();
+      confetti(30);
+      renderAll();
+      showSendRequest(g, true);
+      return;
+    }
+    const rs = e.target.closest('[data-resend]');
+    if (rs) { showSendRequest(S.gaman.find((g) => g.id === rs.dataset.resend), false); return; }
+    const cc = e.target.closest('[data-cancel]');
+    if (cc && confirm('この申請を取り消しますか？')) {
+      S.gaman = S.gaman.filter((g) => g.id !== cc.dataset.cancel);
+      save();
+      renderAll();
+      return;
+    }
+    if (e.target.id === 'pasteCode' || e.target.id === 'pasteCode2') showPasteCode();
+  });
+
+  function requestMessage(g) {
+    const url = Link.adminUrl('req', Link.pack({ id: g.id, a: g.amount, n: g.note, d: g.date }));
+    return `💪 本物のガチャをがまんしました！\n金額: ${fmt(g.amount)}円\n${g.note ? `場所: ${g.note}\n` : ''}認定してね👇\n${url}`;
+  }
+
+  function showSendRequest(g, fresh) {
+    openModal(`
+      <div class="center">
+        ${fresh ? `<div class="praise-emo">🐷💕</div><h3>${esc(rand(PRAISES))}</h3>` : '<h3>📮 申請をもう一度送る</h3>'}
+        <p>${fmt(g.amount)}円のがまんを<br><b>${esc(adminName())}に送って認定してもらおう</b></p>
+      </div>
+      ${Link.sendButtons(requestMessage(g), 'がまん認定のおねがい')}
+      <p class="muted small center">認定されると 🎫 ガチャ券 がもらえます</p>
+      <button class="btn wide" data-close>あとで送る</button>`);
+  }
+
+  /* ---------------- コードの受けとり（ペアリング・認定） ---------------- */
+
+  function showPasteCode() {
+    openModal(`
+      <h3>📋 コードを貼りつける</h3>
+      <p class="muted small">${esc(adminName())}から届いたリンク（またはコード）をコピーして、ここに貼りつけてね。</p>
+      <textarea id="codeText" rows="4" placeholder="https://...#grant=..."></textarea>
+      <button class="btn primary wide" id="codeGo">読みこむ</button>
+      <button class="btn wide" data-close>とじる</button>`, (root) => {
+      (async () => {
+        try {
+          const t = await navigator.clipboard.readText();
+          if (Link.parsePasted(t)) $('#codeText', root).value = t;
+        } catch (e) { /* 読めなければ手で貼ってもらう */ }
+      })();
+      $('#codeGo', root).addEventListener('click', async () => {
+        const parsed = Link.parsePasted($('#codeText', root).value);
+        if (!parsed) { toast('コードが見つかりませんでした'); return; }
+        closeModal();
+        await handleIncoming(parsed, false);
+      });
+    });
+  }
+
+  async function handleIncoming({ type, value }, fromLink) {
+    if (type === 'pair') return handlePair(value, fromLink);
+    if (type === 'grant') return handleGrant(value, fromLink);
+    return null;
+  }
+
+  // ホーム画面のアプリとブラウザでデータが別になっている場合の案内
+  function maybeOtherApp(fromLink, type, value) {
+    if (!fromLink) return '';
+    const url = Link.appUrl(type, value);
+    return `<div class="note-box">
+      <b>📱 ホーム画面のアプリで遊んでいる場合</b><br>
+      このリンクはブラウザで開いたので、アプリのほうには届いていないかもしれません。下のボタンでコピーして、アプリの「コードを貼りつける」から読みこんでね。
+      <button class="btn wide" data-copy="${encodeURIComponent(url)}">リンクをコピー</button>
+    </div>`;
+  }
+
+  async function handlePair(value, fromLink) {
+    let info;
+    try { info = Link.unpack(value); } catch (e) { info = null; }
+    if (!info || !info.k) { toast('つなぐためのコードが正しくありません'); return; }
+    const fp = await Link.fingerprint(info.k);
+    const same = S.admin && S.admin.pub === info.k;
+    const apply = () => {
+      S.admin = { pub: info.k, name: info.n || 'だんなさん', fp, pairedAt: new Date().toISOString() };
+      save();
+      renderAll();
+      Sound.chime();
+      confetti(50);
+      openModal(`
+        <div class="center"><div class="praise-emo">🤝</div>
+        <h3>${esc(S.admin.name)}とつながりました！</h3>
+        <p>あいことば: <b class="fp">${fp}</b></p>
+        <p class="muted small">${esc(S.admin.name)}の管理ページにも同じあいことばが出ていればOK</p></div>
+        ${maybeOtherApp(fromLink, 'pair', value)}
+        <button class="btn primary wide" data-close>OK</button>`);
+    };
+    if (S.admin && !same) {
+      openModal(`<h3>⚠️ つなぎ先を変えますか？</h3>
+        <p>いまは <b>${esc(S.admin.name)}</b>（あいことば ${S.admin.fp}）とつながっています。<br>
+        新しいつなぎ先: <b>${esc(info.n || '')}</b>（あいことば ${fp}）</p>
+        <p class="muted small">変えると、まだ認定されていない申請は新しいつなぎ先に送り直す必要があります。</p>
+        <button class="btn primary wide" id="pairYes">変える</button>
+        <button class="btn wide" data-close>やめる</button>`, (root) => {
+        $('#pairYes', root).addEventListener('click', () => { closeModal(); apply(); });
+      });
+      return;
+    }
+    apply();
+  }
+
+  async function handleGrant(value, fromLink) {
+    if (!S.admin) {
+      openModal(`<h3>まだつながっていません</h3><p>先に「がまん」タブから${esc(adminName())}とつなげてね。</p>
+        ${maybeOtherApp(fromLink, 'grant', value)}<button class="btn wide" data-close>とじる</button>`);
+      return;
+    }
+    const d = await Link.verifyPack(S.admin.pub, value);
+    if (!d) {
+      openModal(`<h3>❌ 認定コードが正しくありません</h3><p>${esc(adminName())}が作ったコードではないか、途中で文字が欠けているようです。</p>
+        <button class="btn wide" data-close>とじる</button>`);
+      return;
+    }
+    if (d.k === 'gift') {
+      if (S.gifts[d.id]) { toast('このプレゼントはもう受けとっています'); return; }
+      S.gifts[d.id] = new Date().toISOString();
+      S.tickets += d.t;
+      S.gaman.unshift({ id: d.id, amount: 0, note: `${adminName()}からのプレゼント`, date: new Date().toISOString(), status: 'gift', tickets: d.t, msg: d.m || '' });
+      save();
+      celebrateGrant(`🎁 ${esc(adminName())}からプレゼント！`, d.t, d.m);
+      return;
+    }
+    const g = S.gaman.find((x) => x.id === d.id);
+    if (!g) {
+      openModal(`<h3>🤔 この申請が見つかりません</h3>
+        <p class="muted">別のスマホやブラウザで申請したものかもしれません。</p>
+        ${maybeOtherApp(fromLink, 'grant', value)}
+        <button class="btn wide" data-close>とじる</button>`);
+      return;
+    }
+    if (g.status !== 'pending') { toast('この申請はもう結果が出ています'); return; }
+    g.decidedAt = new Date().toISOString();
+    g.msg = d.m || '';
+    if (d.k === 'ok') {
+      g.status = 'ok';
+      g.tickets = d.t;
+      S.tickets += d.t;
+      save();
+      checkAchievements();
+      celebrateGrant('🎉 がまん認定！', d.t, d.m);
+    } else {
+      g.status = 'ng';
+      save();
+      renderAll();
+      openModal(`<div class="center"><div class="praise-emo">🙏</div><h3>今回は見送りになりました</h3>
+        ${d.m ? `<p class="msg-big">💬 ${esc(d.m)}</p>` : ''}
+        <button class="btn wide" data-close>とじる</button></div>`);
+    }
+  }
+
+  function celebrateGrant(title, n, msg) {
+    Sound.fanfare('SR');
+    confetti(120);
+    vib([40, 60, 40]);
+    renderAll();
+    openModal(`
+      <div class="center">
+        <div class="praise-emo">🎫✨</div>
+        <h3>${title}</h3>
+        <p class="reward-line">ガチャ券 +${n}枚</p>
+        ${msg ? `<p class="msg-big">💬 ${esc(msg)}</p>` : ''}
+        <button class="btn primary wide" id="goGacha">さっそく回す 🎰</button>
+        <button class="btn wide" data-close>とじる</button>
+      </div>`, (root) => {
+      $('#goGacha', root).addEventListener('click', () => { closeModal(); switchTab('gacha'); });
+    });
+  }
+
+  /* ---------------- 描画: ごほうび ---------------- */
+
+  function renderPrize() {
+    const spent = monthPrizeTotal();
+    const unused = S.prizes.filter((p) => !p.usedAt);
+    const used = S.prizes.filter((p) => p.usedAt).slice(0, 30);
+    const ticket = (p, canUse) => {
+      const pr = PRIZE_BY_ID[p.prize] || { emoji: '🎁', name: 'ご褒美', desc: '', value: 0 };
+      return `<div class="rticket ${canUse ? '' : 'used'}">
+        <div class="rt-emo">${pr.emoji}</div>
+        <div class="rt-body"><b>${esc(pr.name)}</b><small>${esc(pr.desc)}</small>
+          <small class="muted">${canUse ? `当たった日 ${fmtDate(p.won)}` : `使った日 ${fmtDate(p.usedAt)}`}</small></div>
+        ${canUse ? `<button class="btn primary mini" data-use="${p.id}">使う</button>` : '<span class="rt-stamp">使用済</span>'}
+      </div>`;
+    };
+    $('#tab-prize').innerHTML = `
+      <div class="card hero">
+        <small>使えるご褒美チケット</small>
+        <div class="hero-num">${unused.length}<small>枚</small></div>
+        <p class="muted small">今月の当たり ${fmt(spent)}円分 ／ 上限 ${fmt(MONTHLY_CAP)}円</p>
+        <div class="bar"><i style="width:${Math.min(100, (spent / MONTHLY_CAP) * 100)}%"></i></div>
+      </div>
+      <div class="card"><h3>🎟️ 使えるチケット</h3>
+        ${unused.length ? unused.map((p) => ticket(p, true)).join('') : '<p class="muted">まだありません。ガチャで当てよう！</p>'}
+      </div>
+      <div class="card"><h3>🎁 当たりの種類</h3>
+        <ul class="plist">${PRIZES.map((p) => `<li><span class="pl-emo">${p.emoji}</span><div><b>${esc(p.name)}</b><small class="muted">${esc(p.desc)}</small></div><span class="pl-rate">${(p.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%</span></li>`).join('')}</ul>
+        <p class="muted small">1回まわすごとに、この確率で当たります。</p>
+      </div>
+      ${used.length ? `<div class="card"><h3>📜 使ったチケット</h3>${used.map((p) => ticket(p, false)).join('')}</div>` : ''}`;
+  }
+
+  $('#tab-prize').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-use]');
+    if (!b) return;
+    const p = S.prizes.find((x) => x.id === b.dataset.use);
+    const pr = PRIZE_BY_ID[p.prize];
+    openModal(`
+      <div class="center"><div class="praise-emo">${pr.emoji}</div>
+      <h3>${esc(pr.name)}を使いますか？</h3>
+      <p class="muted small">使うと「使用済」になり、${esc(adminName())}に知らせることができます。</p></div>
+      <button class="btn primary wide" id="useYes">使う！</button>
+      <button class="btn wide" data-close>やめる</button>`, (root) => {
+      $('#useYes', root).addEventListener('click', () => {
+        p.usedAt = new Date().toISOString();
+        save();
+        renderAll();
+        Sound.chime();
+        confetti(60);
+        const url = Link.adminUrl('use', Link.pack({ id: p.id, p: p.prize, w: p.won, u: p.usedAt }));
+        const msg = `🎟️ ${pr.name}を使います！\n「${pr.desc}」をおねがいします🙏\n${url}`;
+        openModal(`
+          <div class="center"><div class="praise-emo">🎉</div><h3>${esc(pr.name)}を使いました</h3>
+          <p>${esc(adminName())}に知らせよう！</p></div>
+          ${Link.sendButtons(msg, `${pr.name}を使います`)}
+          <button class="btn wide" data-close>とじる</button>`);
+      });
+    });
+  });
+
   /* ---------------- 描画: ずかん ---------------- */
 
   function renderZukan() {
     const all = allItems();
     const got = ownedIn(S, all);
+    const li = levelInfo(S.xp);
+    const next = MACHINES.find((m) => m.unlock > li.lv);
     const html = MACHINES.map((m) => {
       if (!isUnlocked(m)) {
         return `<div class="zk-sec locked"><h3>🔒 ？？？</h3><p class="muted">Lv.${m.unlock} で解放されます</p></div>`;
@@ -798,22 +1167,37 @@
         }).join('')}</div></div>`;
     }).join('');
     $('#tab-zukan').innerHTML = `
+      <div class="card level-card">
+        <div class="hero-row">
+          <div><small>いまの称号</small><h3>${esc(titleFor(li.lv))}</h3>
+          <p class="muted small">Lv.${li.lv} ・ つぎまで ${li.need - li.cur} XP ・ 🔥${S.login.streak}日連続</p></div>
+          <div class="lv-big">Lv<b>${li.lv}</b></div>
+        </div>
+        <div class="bar"><i style="width:${(li.cur / li.need) * 100}%"></i></div>
+        ${next ? `<p class="muted small">Lv.${next.unlock} で「${esc(next.name)}」が登場！</p>` : ''}
+      </div>
       <div class="card hero">
-        <div class="hero-row"><div><small>コレクション</small><div class="hero-num">${got}<small> / ${all.length}</small></div></div>
+        <div class="hero-row"><div><small>マスコットずかん</small><div class="hero-num">${got}<small> / ${all.length}</small></div></div>
         <div class="ring" style="--p:${(got / all.length) * 100}"><span>${Math.floor((got / all.length) * 100)}%</span></div></div>
-        <p class="muted">かぶったアイテムは 💎かけら になります。かけらがたまったら、まだ持っていないアイテムと交換できるよ（${S.shards}こ所持）</p>
-      </div>${html}`;
+        <p class="muted small">はずれの時に出るマスコットがここにたまります。1台コンプで 🎫3枚！</p>
+      </div>
+      ${html}
+      <div class="card">
+        <h3>🏅 実績 <small class="muted">${Object.keys(S.achievements).length}/${ACHIEVEMENTS.length}</small></h3>
+        <div class="ach-grid">${ACHIEVEMENTS.map((a) => {
+          const ok = S.achievements[a.id];
+          return `<div class="ach ${ok ? 'got' : ''}"><span class="ach-icon">${ok ? a.icon : '🔒'}</span>
+            <b>${esc(a.name)}</b><small>${esc(a.desc)}</small><small class="ach-rw">🎫${a.reward}</small></div>`;
+        }).join('')}</div>
+      </div>`;
   }
 
   $('#tab-zukan').addEventListener('click', (e) => {
     const b = e.target.closest('.zk-item');
-    if (b) showItemDetail(ITEMS[b.dataset.id]);
-  });
-
-  function showItemDetail(it) {
+    if (!b) return;
+    const it = ITEMS[b.dataset.id];
     const n = S.collection[it.id] || 0;
     const hidden = !n && it.rarity === 'SE';
-    const price = RARITY[it.rarity].cost;
     openModal(`
       <div class="detail r-${it.rarity}">
         <span class="badge r-${it.rarity}">${RARITY[it.rarity].label}</span>
@@ -821,323 +1205,68 @@
         <h3>${hidden ? '？？？' : esc(it.name)}</h3>
         ${n ? `<p class="desc">${esc(it.desc)}</p>
           <p class="muted">所持数 ${n}こ ・ はじめて出会った日 ${S.obtainedAt[it.id] ? fmtDate(S.obtainedAt[it.id]) : '-'}</p>`
-          : `<p class="muted">まだ出会っていません</p>
-          <button class="btn primary wide" id="exBtn" ${S.shards >= price ? '' : 'disabled'}>💎 ${price} で交換する</button>
-          <p class="muted small">所持 💎${S.shards}</p>`}
+          : '<p class="muted">まだ出会っていません</p>'}
         <button class="btn wide" data-close>とじる</button>
-      </div>`, (root) => {
-      $('#exBtn', root)?.addEventListener('click', () => {
-        if (S.shards < price) return;
-        S.shards -= price;
-        save();
-        closeModal();
-        showCapsule(it, it.rarity === 'SE' ? 'rainbow' : it.rarity === 'SR' ? 'gold' : rand(CAPSULE_COLORS), () => grantItem(it));
-      });
-    });
-  }
-
-  /* ---------------- 描画: がまん貯金 ---------------- */
-
-  function monthKey(iso) { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth() + 1}`; }
-
-  function renderSave() {
-    const total = savedTotal(S);
-    const now = new Date();
-    const thisMonth = S.savings.filter((x) => monthKey(x.date) === `${now.getFullYear()}-${now.getMonth() + 1}`);
-    const monthSum = thisMonth.reduce((a, x) => a + x.amount, 0);
-
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const k = `${d.getFullYear()}-${d.getMonth() + 1}`;
-      months.push({ label: `${d.getMonth() + 1}月`, sum: S.savings.filter((x) => monthKey(x.date) === k).reduce((a, x) => a + x.amount, 0) });
-    }
-    const maxM = Math.max(1, ...months.map((x) => x.sum));
-
-    let goalHtml;
-    if (S.goal) {
-      const prog = Math.max(0, total - S.goal.base);
-      const pct = Math.min(100, (prog / S.goal.amount) * 100);
-      goalHtml = `<div class="card goal">
-        <div class="goal-head"><span>🎁 ご褒美目標</span><button class="link" id="goalEdit">変更</button></div>
-        <h3>${esc(S.goal.name)}</h3>
-        <div class="bar big"><i style="width:${pct}%"></i></div>
-        <p class="goal-nums"><b>${fmt(prog)}円</b> / ${fmt(S.goal.amount)}円 ${pct >= 100 ? '' : `<span class="muted">あと${fmt(S.goal.amount - prog)}円</span>`}</p>
-        ${pct >= 100 ? '<p class="center">🎉 目標たっせい！リアルでご褒美を買っちゃおう！</p><button class="btn primary wide" id="goalDone">ご褒美を買った！次の目標へ</button>' : ''}
-      </div>`;
-    } else {
-      goalHtml = `<div class="card goal">
-        <div class="goal-head"><span>🎁 ご褒美目標</span></div>
-        <p class="muted">がまんしたお金で、本当にほしいものを買おう。</p>
-        <input id="goalName" placeholder="ほしいもの（例: カフェでケーキ）" maxlength="30">
-        <input id="goalAmount" type="number" inputmode="numeric" placeholder="金額（円）" min="100" step="100">
-        <button class="btn primary wide" id="goalSet">目標をきめる</button>
-      </div>`;
-    }
-
-    const hist = S.savings.slice(0, 50).map((x) => `
-      <li><span class="h-date">${fmtDate(x.date)}</span><span class="h-note">${esc(x.note || 'リアルガチャ')}</span>
-      <b>${fmt(x.amount)}円</b><button class="h-del" data-id="${x.id}" aria-label="けす">×</button></li>`).join('');
-
-    $('#tab-save').innerHTML = `
-      <div class="card hero pig">
-        <small>これまでの がまん貯金</small>
-        <div class="hero-num">${fmt(total)}<small>円</small></div>
-        <p class="muted">今月 ${fmt(monthSum)}円（${thisMonth.length}回）・ 合計 ${S.savings.length}回がまん</p>
-      </div>
-      <div class="card">
-        <h3>💪 リアルガチャをがまんした！</h3>
-        <p class="muted small">がまんした金額と同じだけ 🪙コイン がもらえます</p>
-        <div class="amount-grid">
-          ${[200, 300, 400, 500].map((a) => `<button class="btn amount" data-amt="${a}">${a}円</button>`).join('')}
-          <button class="btn amount" data-amt="custom">その他</button>
-        </div>
-        <input id="saveNote" placeholder="メモ（例: 駅前のねこガチャ）" maxlength="30">
-      </div>
-      ${goalHtml}
-      <div class="card">
-        <h3>📊 月ごとのがまん</h3>
-        <div class="chart">${months.map((x) => `<div class="col"><span class="val">${x.sum ? fmt(x.sum) : ''}</span><i style="height:${(x.sum / maxM) * 100}%"></i><small>${x.label}</small></div>`).join('')}</div>
-      </div>
-      ${S.goalsDone.length ? `<div class="card"><h3>🏆 かなえたご褒美</h3><ul class="done-list">${S.goalsDone.map((g) => `<li>🎁 ${esc(g.name)} <span class="muted">${fmt(g.amount)}円</span></li>`).join('')}</ul></div>` : ''}
-      <div class="card"><h3>📝 りれき</h3>${hist ? `<ul class="history">${hist}</ul>` : '<p class="muted">まだ記録がありません</p>'}</div>`;
-  }
-
-  $('#tab-save').addEventListener('click', (e) => {
-    const amt = e.target.closest('[data-amt]');
-    if (amt) {
-      let a = amt.dataset.amt;
-      if (a === 'custom') {
-        const v = prompt('がまんした金額（円）を入力してね', '300');
-        if (v === null) return;
-        a = parseInt(String(v).replace(/[^\d]/g, ''), 10);
-        if (!a || a < 1 || a > 100000) { toast('金額を正しく入力してね'); return; }
-      }
-      recordSave(Number(a), $('#saveNote').value.trim());
-      return;
-    }
-    const del = e.target.closest('.h-del');
-    if (del) {
-      const rec = S.savings.find((x) => x.id === del.dataset.id);
-      if (rec && confirm(`${fmt(rec.amount)}円の記録をけしますか？\n（もらったコインも ${fmt(rec.amount)} へります）`)) {
-        S.savings = S.savings.filter((x) => x !== rec);
-        S.coins = Math.max(0, S.coins - rec.amount);
-        save();
-        renderAll();
-      }
-      return;
-    }
-    if (e.target.id === 'goalSet') {
-      const name = $('#goalName').value.trim();
-      const amount = parseInt($('#goalAmount').value, 10);
-      if (!name || !amount || amount < 100) { toast('ほしいものと金額（100円以上）を入れてね'); return; }
-      S.goal = { name, amount, base: savedTotal(S), createdAt: new Date().toISOString() };
-      save();
-      renderSave();
-      toast(`🎁 目標「${esc(name)}」スタート！`);
-    }
-    if (e.target.id === 'goalEdit') {
-      openModal(`<h3>🎁 目標を変更</h3>
-        <input id="gName" value="${esc(S.goal.name)}" maxlength="30">
-        <input id="gAmt" type="number" inputmode="numeric" value="${S.goal.amount}">
-        <button class="btn primary wide" id="gSave">保存</button>
-        <button class="btn wide danger" id="gDel">目標をやめる</button>
-        <button class="btn wide" data-close>キャンセル</button>`, (root) => {
-        $('#gSave', root).addEventListener('click', () => {
-          const n = $('#gName', root).value.trim(), a = parseInt($('#gAmt', root).value, 10);
-          if (!n || !a || a < 100) { toast('ほしいものと金額（100円以上）を入れてね'); return; }
-          S.goal.name = n; S.goal.amount = a; save(); closeModal(); renderAll(); checkGoal();
-        });
-        $('#gDel', root).addEventListener('click', () => { S.goal = null; save(); closeModal(); renderAll(); });
-      });
-    }
-    if (e.target.id === 'goalDone') {
-      S.goalsDone.unshift({ name: S.goal.name, amount: S.goal.amount, doneAt: new Date().toISOString() });
-      S.goal = null;
-      save();
-      confetti(100);
-      Sound.fanfare('SE');
-      renderAll();
-    }
-  });
-
-  function recordSave(amount, note) {
-    Sound.ensure();
-    S.savings.unshift({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, amount, note, date: new Date().toISOString() });
-    S.coins += amount;
-    S.daily.saves += 1;
-    save();
-    Sound.coin();
-    setTimeout(() => Sound.chime(), 150);
-    vib([20, 40, 20]);
-    confetti(40);
-    $('#saveNote') && ($('#saveNote').value = '');
-    checkAchievements();
-    renderAll();
-    openModal(`
-      <div class="center praise">
-        <div class="praise-emo">🐷💕</div>
-        <h3>${esc(rand(PRAISES))}</h3>
-        <p class="reward-line">がまん貯金 +${fmt(amount)}円<br>🪙 コイン +${fmt(amount)}</p>
-        <p class="muted">がまん貯金の合計: <b>${fmt(savedTotal(S))}円</b></p>
-        <button class="btn primary wide" id="goGacha">さっそく回しにいく 🎰</button>
-        <button class="btn wide" data-close>とじる</button>
-      </div>`, (root) => {
-      $('#goGacha', root).addEventListener('click', () => { closeModal(); switchTab('gacha'); });
-    });
-    checkGoal();
-  }
-
-  function checkGoal() {
-    if (!S.goal || S.goal.doneAt) return;
-    if (savedTotal(S) - S.goal.base >= S.goal.amount) {
-      S.goal.doneAt = new Date().toISOString();
-      save();
-      checkAchievements();
-      afterModal(() => {
-        confetti(120);
-        Sound.fanfare('SE');
-        openModal(`<div class="center"><div class="praise-emo">🏆</div><h3>ご褒美目標たっせい！</h3>
-          <p>「${esc(S.goal.name)}」の分（${fmt(S.goal.amount)}円）を<br>がまんでためました！</p>
-          <p class="muted">リアルで買って、自分をたっぷりほめてあげてね💐</p>
-          <button class="btn primary wide" data-close>やったー！</button></div>`);
-      });
-    }
-  }
-
-  /* ---------------- 描画: ミッション ---------------- */
-
-  function missionProgress(ms) { return Math.min(ms.goal, S.daily[ms.key] || 0); }
-  function hasClaimable() {
-    const anyMission = DAILY_MISSIONS.some((ms) => !S.daily.claimed[ms.id] && missionProgress(ms) >= ms.goal);
-    const allClaimed = DAILY_MISSIONS.every((ms) => S.daily.claimed[ms.id]);
-    return anyMission || (allClaimed && !S.daily.allClear);
-  }
-
-  function renderMission() {
-    const li = levelInfo(S.xp);
-    const next = MACHINES.find((m) => m.unlock > li.lv);
-    const allClaimed = DAILY_MISSIONS.every((ms) => S.daily.claimed[ms.id]);
-    const idx = (Math.max(1, S.login.streak) - 1) % 7;
-    const unlockedCount = Object.keys(S.achievements).length;
-
-    $('#tab-mission').innerHTML = `
-      <div class="card level-card">
-        <div class="hero-row">
-          <div><small>いまの称号</small><h3>${esc(titleFor(li.lv))}</h3>
-          <p class="muted">Lv.${li.lv} ・ つぎまで ${li.need - li.cur} XP</p></div>
-          <div class="lv-big">Lv<b>${li.lv}</b></div>
-        </div>
-        <div class="bar"><i style="width:${(li.cur / li.need) * 100}%"></i></div>
-        ${next ? `<p class="muted small">Lv.${next.unlock} で「${esc(next.name)}」が登場！</p>` : ''}
-      </div>
-      <div class="card">
-        <h3>🔥 ${S.login.streak}日連続ログイン <small class="muted">（最高 ${S.login.best}日）</small></h3>
-        <div class="stamps small">${LOGIN_REWARDS.map((r, i) => `<div class="stamp ${i <= idx ? 'done' : ''}"><small>${i + 1}</small><span>${i <= idx ? '💮' : i === 6 ? '🎁' : '🪙'}</span></div>`).join('')}</div>
-      </div>
-      <div class="card">
-        <h3>📋 きょうのミッション</h3>
-        <ul class="missions">${DAILY_MISSIONS.map((ms) => {
-          const p = missionProgress(ms);
-          const claimed = S.daily.claimed[ms.id];
-          return `<li class="${claimed ? 'claimed' : ''}">
-            <span class="m-icon">${ms.icon}</span>
-            <div class="m-body"><span>${ms.label}</span><div class="bar"><i style="width:${(p / ms.goal) * 100}%"></i></div></div>
-            ${claimed ? '<span class="m-done">✅</span>'
-              : `<button class="btn mini ${p >= ms.goal ? 'primary' : ''}" data-claim="${ms.id}" ${p >= ms.goal ? '' : 'disabled'}>${p >= ms.goal ? `🪙${ms.reward}` : `${p}/${ms.goal}`}</button>`}
-          </li>`;
-        }).join('')}</ul>
-        <div class="allclear ${allClaimed ? 'ready' : ''}">
-          <span>🌈 ぜんぶクリアボーナス 🪙${ALL_CLEAR_BONUS.coins} + 🎫${ALL_CLEAR_BONUS.tickets}</span>
-          ${S.daily.allClear ? '<span>✅</span>' : `<button class="btn mini ${allClaimed ? 'primary' : ''}" id="allClear" ${allClaimed ? '' : 'disabled'}>うけとる</button>`}
-        </div>
-      </div>
-      <div class="card">
-        <h3>🏅 実績 <small class="muted">${unlockedCount}/${ACHIEVEMENTS.length}</small></h3>
-        <div class="ach-grid">${ACHIEVEMENTS.map((a) => {
-          const got = S.achievements[a.id];
-          return `<div class="ach ${got ? 'got' : ''}"><span class="ach-icon">${got ? a.icon : '🔒'}</span>
-            <b>${esc(a.name)}</b><small>${esc(a.desc)}</small><small class="ach-rw">🪙${fmt(a.reward)}</small></div>`;
-        }).join('')}</div>
-      </div>`;
-  }
-
-  $('#tab-mission').addEventListener('click', (e) => {
-    const c = e.target.closest('[data-claim]');
-    if (c) {
-      const ms = DAILY_MISSIONS.find((x) => x.id === c.dataset.claim);
-      if (!ms || S.daily.claimed[ms.id] || missionProgress(ms) < ms.goal) return;
-      S.daily.claimed[ms.id] = true;
-      S.coins += ms.reward;
-      save();
-      Sound.coin();
-      toast(`📋 ミッション達成！ 🪙 +${ms.reward}`);
-      renderAll();
-      return;
-    }
-    if (e.target.id === 'allClear') {
-      if (S.daily.allClear || !DAILY_MISSIONS.every((ms) => S.daily.claimed[ms.id])) return;
-      S.daily.allClear = true;
-      S.coins += ALL_CLEAR_BONUS.coins;
-      S.tickets += ALL_CLEAR_BONUS.tickets;
-      save();
-      Sound.fanfare('R');
-      confetti(60);
-      toast(`🌈 ぜんぶクリア！ 🪙 +${ALL_CLEAR_BONUS.coins} 🎫 +${ALL_CLEAR_BONUS.tickets}`, 'gold');
-      renderAll();
-    }
+      </div>`);
   });
 
   /* ---------------- 設定 ---------------- */
 
-  function encodeBackup() { return btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }
-  function decodeBackup(str) { return JSON.parse(decodeURIComponent(escape(atob(str.trim())))); }
+  const encodeBackup = () => btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+  const decodeBackup = (str) => JSON.parse(decodeURIComponent(escape(atob(str.trim()))));
 
   function showSettings() {
     openModal(`
       <h3>⚙️ せってい</h3>
+      <h4>🤝 管理者</h4>
+      ${S.admin ? `<p>${esc(S.admin.name)} とつながっています<br><span class="muted small">あいことば <b class="fp">${S.admin.fp}</b></span></p>`
+        : '<p class="muted">まだつながっていません</p>'}
+      <button class="btn wide" id="setPaste">📋 コードを貼りつける</button>
       <label class="switch"><input type="checkbox" id="setSound" ${S.settings.sound ? 'checked' : ''}> 🔊 サウンド</label>
       <label class="switch"><input type="checkbox" id="setVib" ${S.settings.vib ? 'checked' : ''}> 📳 バイブレーション（Android）</label>
-      <h4>💾 バックアップ</h4>
-      <p class="muted small">データはこの端末の中だけに保存されています。機種変更のときは「コピー」した文字をメモなどに保存して、新しい端末で「読みこむ」してください。</p>
-      <div class="row2"><button class="btn" id="bkCopy">コピー</button><button class="btn" id="bkLoad">読みこむ</button></div>
-      <textarea id="bkText" rows="3" placeholder="ここにバックアップの文字をはりつけ"></textarea>
       <h4>📖 あそびかた</h4>
       <ul class="howto">
-        <li>🐷 本物のガチャガチャをがまんしたら「がまん貯金」に記録 → 同じ金額の🪙コインがもらえる</li>
-        <li>🎰 コインを入れてハンドルを回し、カプセルをタップしてあけよう</li>
-        <li>🛟 ${PITY}回つづけてかぶると、次は必ずNEWが出る</li>
-        <li>💎 かぶりは「かけら」に。ずかんから欲しいものと交換できる</li>
-        <li>🎁 ご褒美目標をきめると、がまんしたお金で本物のご褒美が買える</li>
+        <li>🎫 ガチャ券1枚で1回まわせる。毎日ログインでもらえる</li>
+        <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 100円につき🎫${TICKETS_PER_100YEN}枚</li>
+        <li>🎁 まわすと、たまに<b>本物のご褒美チケット</b>が当たる！「ごほうび」タブから使える</li>
+        <li>🧸 はずれのときはマスコットが出て、ずかんにたまる</li>
+        <li>🛟 マスコットが${PITY}回つづけてかぶると、次は必ずNEW</li>
       </ul>
+      <h4>💾 バックアップ</h4>
+      <p class="muted small">データはこのスマホの中だけにあります。機種変更のときは「コピー」した文字を保存して、新しいスマホで「読みこむ」。</p>
+      <div class="row2"><button class="btn" id="bkCopy">コピー</button><button class="btn" id="bkLoad">読みこむ</button></div>
+      <textarea id="bkText" rows="3" placeholder="ここにバックアップの文字をはりつけ"></textarea>
       <button class="btn wide danger" id="resetAll">データをぜんぶ消す</button>
       <button class="btn primary wide" data-close>とじる</button>`, (root) => {
+      $('#setPaste', root).addEventListener('click', () => { closeModal(); showPasteCode(); });
       $('#setSound', root).addEventListener('change', (e) => { S.settings.sound = e.target.checked; save(); });
       $('#setVib', root).addEventListener('change', (e) => { S.settings.vib = e.target.checked; save(); });
       $('#bkCopy', root).addEventListener('click', async () => {
         const code = encodeBackup();
         $('#bkText', root).value = code;
-        try { await navigator.clipboard.writeText(code); toast('📋 コピーしました'); } catch (e) { $('#bkText', root).select(); toast('文字を長押ししてコピーしてね'); }
+        toast((await Link.copy(code)) ? '📋 コピーしました' : '文字を長押ししてコピーしてね');
       });
       $('#bkLoad', root).addEventListener('click', () => {
         try {
           const d = decodeBackup($('#bkText', root).value);
-          if (typeof d.coins !== 'number' || typeof d.collection !== 'object') throw new Error('bad');
+          if (typeof d.collection !== 'object') throw new Error('bad');
           if (!confirm('いまのデータを上書きして読みこみますか？')) return;
-          localStorage.setItem(KEY, JSON.stringify(d));
+          if (d.v === 2) localStorage.setItem(KEY, JSON.stringify(d));
+          else { localStorage.removeItem(KEY); localStorage.setItem(KEY_V1, JSON.stringify(d)); }
           location.reload();
         } catch (e) { toast('読みこめませんでした。文字をたしかめてね'); }
       });
       $('#resetAll', root).addEventListener('click', () => {
         if (!confirm('本当にすべてのデータを消しますか？')) return;
-        if (!confirm('ずかんも、がまん貯金の記録も消えます。よろしいですか？')) return;
+        if (!confirm('ずかんも、ご褒美チケットも、がまんの記録も消えます。よろしいですか？')) return;
         localStorage.removeItem(KEY);
+        localStorage.removeItem(KEY_V1);
         location.reload();
       });
     });
   }
   $('#settingsBtn').addEventListener('click', showSettings);
-  $('#lvBtn').addEventListener('click', () => switchTab('mission'));
+  $('#lvBtn').addEventListener('click', () => switchTab('zukan'));
 
   /* ---------------- タブ ---------------- */
 
@@ -1146,7 +1275,6 @@
     currentTab = t;
     $$('.tabbar button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${t}`));
-    if (t === 'zukan' && !S.daily.opened) { S.daily.opened = 1; save(); }
     renderAll();
     window.scrollTo({ top: 0 });
   }
@@ -1155,10 +1283,14 @@
   function renderAll() {
     renderHeader();
     if (currentTab === 'gacha') renderGacha();
+    if (currentTab === 'gaman') renderGaman();
+    if (currentTab === 'prize') renderPrize();
     if (currentTab === 'zukan') renderZukan();
-    if (currentTab === 'save') renderSave();
-    if (currentTab === 'mission') renderMission();
   }
+
+  // iPhone Safari は user-scalable=no を無視するので、ピンチ拡大はここで止める
+  // （ダブルタップ拡大は CSS の touch-action: manipulation で止めている）
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
 
   /* ---------------- 起動 ---------------- */
 
@@ -1166,11 +1298,17 @@
   checkAchievements();
   renderAll();
 
+  const incoming = Link.readHash();
+  if (incoming) {
+    Link.clearHash();
+    if (incoming.type === 'grant') switchTab('gaman');
+    afterModal(() => handleIncoming(incoming, true));
+  }
+
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      const before = S.daily.date;
+    if (document.visibilityState === 'visible' && S.login.last !== today()) {
       checkDay();
-      if (before !== S.daily.date) renderAll();
+      renderAll();
     }
   });
 
