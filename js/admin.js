@@ -1,4 +1,4 @@
-/* ぽけっとガチャ — 管理ページ（だんなさん用） */
+/* ガチャモン — 管理ページ（だんなさん用） */
 (() => {
   'use strict';
 
@@ -178,7 +178,7 @@
     openModal(`
       <h3>🤝 ${esc(wife())}に送ってね</h3>
       <p>このリンクを${esc(wife())}がタップすると、アプリとつながります。</p>
-      ${Link.sendButtons(`🎰 ぽけっとガチャの管理者になりました！\nこのリンクをタップしてつないでね👇\n${url}`, 'ぽけっとガチャ つなぐリンク')}
+      ${Link.sendButtons(`🎰 ガチャモンの管理者になりました！\nこのリンクをタップしてつないでね👇\n${url}`, 'ガチャモン つなぐリンク')}
       <p class="muted small">あいことば: <b class="fp">${A.fp}</b></p>
       <button class="btn wide" data-close>とじる</button>`);
   }
@@ -188,7 +188,7 @@
     openModal(`
       <h3>📮 ${esc(wife())}に送ってね</h3>
       <p class="msg-big">${esc(text).replace(/\n/g, '<br>')}</p>
-      ${Link.sendButtons(`${text}\n👇タップして受けとってね\n${url}`, 'ぽけっとガチャ')}
+      ${Link.sendButtons(`${text}\n👇タップして受けとってね\n${url}`, 'ガチャモン')}
       <button class="btn wide" data-close>とじる</button>`);
   }
 
