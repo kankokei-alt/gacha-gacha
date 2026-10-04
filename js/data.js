@@ -21,8 +21,8 @@ const GAMAN_TICKETS = 3;
 const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];
 // レベルアップでもらえるガチャ券
 const LEVELUP_TICKETS = 1;
-// 時間でたまるガチャ券: TIMER_HOURS 時間ごとに1枚。アプリを開いていなくても TIMER_MAX 枚までたまる
-const TIMER_HOURS = 8;
+// 時間でたまるガチャ券: 毎日この時刻（時）になるたびに1枚。アプリを開いていなくても TIMER_MAX 枚までたまる
+const TIMER_SLOTS = [6, 14, 22];
 const TIMER_MAX = 3;
 
 /* ================================================================

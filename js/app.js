@@ -248,20 +248,46 @@
 
   /* ---------------- 時間でたまるガチャ券 ---------------- */
 
-  const TIMER_MS = TIMER_HOURS * 3600 * 1000;
+  const slotLabel = () => TIMER_SLOTS.map((h) => `${h}時`).join('・');
 
-  // 前回から TIMER_HOURS 時間たつごとに1枚。開いていない間も TIMER_MAX 枚まではたまる
+  // t 以前でいちばん新しい受けとり時刻
+  function lastSlot(t) {
+    const d = new Date(t);
+    for (let back = 0; back < 3; back++) {
+      const day = new Date(d.getFullYear(), d.getMonth(), d.getDate() - back);
+      for (let i = TIMER_SLOTS.length - 1; i >= 0; i--) {
+        const s = new Date(day.getFullYear(), day.getMonth(), day.getDate(), TIMER_SLOTS[i]).getTime();
+        if (s <= t) return s;
+      }
+    }
+    return t;
+  }
+  // t より後でいちばん早い受けとり時刻
+  function nextSlot(t) {
+    const d = new Date(t);
+    for (let fwd = 0; fwd < 3; fwd++) {
+      const day = new Date(d.getFullYear(), d.getMonth(), d.getDate() + fwd);
+      for (const h of TIMER_SLOTS) {
+        const s = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h).getTime();
+        if (s > t) return s;
+      }
+    }
+    return t + 86400000;
+  }
+
+  // 前回から今までに過ぎた受けとり時刻の数だけ1枚ずつ（開いていない間は TIMER_MAX 枚まで）
   function accrueTimer(silent = false) {
     const now = Date.now();
-    if (!S.timerAt) { S.timerAt = now; save(); return 0; }
-    const n = Math.floor((now - S.timerAt) / TIMER_MS);
+    if (!S.timerAt) { S.timerAt = lastSlot(now); save(); return 0; }
+    let n = 0;
+    for (let s = nextSlot(S.timerAt); s <= now && n <= TIMER_MAX; s = nextSlot(s)) n++;
     if (n <= 0) return 0;
     const add = Math.min(n, TIMER_MAX);
     S.tickets += add;
-    S.timerAt = n > TIMER_MAX ? now : S.timerAt + n * TIMER_MS;
+    S.timerAt = lastSlot(now);
     save();
     if (!silent) {
-      toast(`⏰ 時間でガチャ券がたまったよ！ 🎫 +${add}`, 'gold');
+      toast(`⏰ ガチャ券がとどいたよ！ 🎫 +${add}`, 'gold');
       Sound.coin();
     }
     renderAll();
@@ -269,17 +295,18 @@
   }
 
   function timerLeftText() {
-    const left = Math.max(0, (S.timerAt || Date.now()) + TIMER_MS - Date.now());
+    const next = nextSlot(Date.now());
+    const left = Math.max(0, next - Date.now());
     const h = Math.floor(left / 3600000), m = Math.ceil((left % 3600000) / 60000);
-    if (m === 60) return `${h + 1}時間0分`;
-    return h ? `${h}時間${m}分` : `${m}分`;
+    const rest = m === 60 ? `${h + 1}時間0分` : h ? `${h}時間${m}分` : `${m}分`;
+    return { at: `${new Date(next).getHours()}:00`, rest };
   }
 
   function showTicketInfo() {
     openModal(`
       <h3>🎫 ガチャ券のもらい方</h3>
       <ul class="howto">
-        <li>⏰ <b>${TIMER_HOURS}時間ごとに1枚</b>（つぎの1枚まで あと${timerLeftText()}）<br><span class="muted small">開いていない間も${TIMER_MAX}枚まではたまります</span></li>
+        <li>⏰ <b>毎日 ${slotLabel()} に1枚ずつ</b>（つぎは ${timerLeftText().at}、あと${timerLeftText().rest}）<br><span class="muted small">開いていない間も${TIMER_MAX}枚まではたまります</span></li>
         <li>🌞 毎日のログインで1枚（7日目は${LOGIN_TICKETS[6]}枚）</li>
         <li>💪 本物のガチャをがまんして認定されると ${GAMAN_TICKETS}枚</li>
         <li>⭐ レベルアップ・🏅 実績でももらえる</li>
@@ -873,7 +900,8 @@
     $('#lvTitle').textContent = titleFor(li.lv);
     $('#xpFill').style.width = `${(li.cur / li.need) * 100}%`;
     $('#tickets').textContent = fmt(S.tickets);
-    $('#timerNext').textContent = `⏰ 次の1枚まで ${timerLeftText()}`;
+    const tl = timerLeftText();
+    $('#timerNext').textContent = `⏰ 次は${tl.at}（あと${tl.rest}）`;
     $('#prizeDot').classList.toggle('hidden', !S.prizes.some((p) => !p.usedAt));
     $('#gamanDot').classList.toggle('hidden', !S.gaman.some((g) => g.status === 'pending'));
   }
@@ -1342,7 +1370,7 @@
       <label class="switch"><input type="checkbox" id="setVib" ${S.settings.vib ? 'checked' : ''}> 📳 バイブレーション（Android）</label>
       <h4>📖 あそびかた</h4>
       <ul class="howto">
-        <li>🎫 ガチャ券1枚で1回まわせる。${TIMER_HOURS}時間ごとに1枚たまるほか、毎日のログインでももらえる</li>
+        <li>🎫 ガチャ券1枚で1回まわせる。毎日${slotLabel()}に1枚ずつとどくほか、毎日のログインでももらえる</li>
         <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 🎫${GAMAN_TICKETS}枚</li>
         <li>🎁 まわすと、たまに<b>本物のご褒美チケット</b>が当たる！「ごほうび」タブから使える</li>
         <li>🧸 はずれのときはキャラ（ガチャモン・家族）が出て、ずかんにたまる</li>
