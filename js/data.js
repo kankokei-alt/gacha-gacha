@@ -5,13 +5,15 @@
  * リアルご褒美（当たり）の設定
  *   rate  … 1回まわしたときに当たる確率（0.08 = 8%）
  *   value … 1枚あたりの金額の目安（円）。平均の計算に使う
- * 1回あたりの平均は約50円。1か月に60回まわすと、平均 約3,000円 になる確率です。
+ * value は1枚あたりの金額の目安（円）。確率は rate。
  * （上限はありません。運が良い月は多め、悪い月は少なめになります）
  * ================================================================ */
 const PRIZES = [
   { id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 200, rate: 0.10, desc: 'コンビニで1人200円くらいのスイーツかおやつを買っていい券' },
-  { id: 'cafe', name: 'カフェ・ランチチケット', emoji: '🍝', value: 2000, rate: 0.01, desc: '休日のお昼ごはんを、カフェやお店で食べられる券' },
-  { id: 'sushi', name: 'お寿司チケット', emoji: '🍣', value: 4000, rate: 0.0025, desc: '回転寿司に行ける券' },
+  { id: 'cafe', name: 'カフェ・ランチチケット', emoji: '🍝', value: 4000, rate: 0.01, desc: '休日のお昼ごはんを、カフェやお店で食べられる券' },
+  { id: 'sushi', name: 'お寿司チケット', emoji: '🍣', value: 5000, rate: 0.0025, desc: '回転寿司に行ける券' },
+  // ガチャでは出ない特別なご褒美（パチモン全40種をコンプしたときに1回だけもらえる）
+  { id: 'dinner', name: '豪華ディナーチケット', emoji: '🍷', value: 10000, rate: 0, special: true, desc: 'ふたりで1万円の豪華ディナーに行ける券（パチモン全40種コンプのご褒美）' },
 ];
 // 本物のガチャを1回がまんして認定されたときにもらえるガチャ券（管理ページで増減できる）
 const GAMAN_TICKETS = 3;
@@ -126,6 +128,9 @@ MACHINES.forEach((m) => {
   });
 });
 const PRIZE_BY_ID = Object.fromEntries(PRIZES.map((p) => [p.id, p]));
+const GACHA_PRIZES = PRIZES.filter((p) => !p.special);
+// コンプでもらえる特別なご褒美
+const COMPLETE_PRIZES = { pachimon: 'dinner' };
 
 const CAPSULE_COLORS = ['#ff6b8b', '#ffa94d', '#ffe066', '#7ed98a', '#5cc8ff', '#a98bff', '#ff8fd1', '#4dd4c6'];
 
