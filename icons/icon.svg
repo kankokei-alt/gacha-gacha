@@ -1,31 +1,66 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ff9ec4"/><stop offset=".55" stop-color="#ff7aa8"/><stop offset="1" stop-color="#ff9a6b"/>
+    <linearGradient id="gmBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a2f78"/><stop offset=".55" stop-color="#5b3590"/><stop offset="1" stop-color="#a23f8c"/>
     </linearGradient>
-    <radialGradient id="glow" cx="30%" cy="22%" r="70%">
-      <stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    <radialGradient id="gmLight" cx="28%" cy="18%" r="75%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffe17a"/><stop offset=".5" stop-color="#ffc233"/><stop offset="1" stop-color="#ff9f1a"/>
+    <radialGradient id="gmTop" cx="35%" cy="25%" r="80%">
+      <stop offset="0" stop-color="#ff9cc2"/><stop offset=".55" stop-color="#ff5c95"/><stop offset="1" stop-color="#e23a76"/>
+    </radialGradient>
+    <radialGradient id="gmBot" cx="40%" cy="20%" r="90%">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".7" stop-color="#fbeef3"/><stop offset="1" stop-color="#ebcdd9"/>
+    </radialGradient>
+    <linearGradient id="gmBand" x1="0" x2="1">
+      <stop offset="0" stop-color="#ffd3e3"/><stop offset=".5" stop-color="#fff2f7"/><stop offset="1" stop-color="#f7bcd2"/>
     </linearGradient>
-    <linearGradient id="bot" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffe8f1"/>
+    <linearGradient id="gmLimb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f1d6e1"/>
     </linearGradient>
-    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#b03a64" flood-opacity=".35"/></filter>
+    <radialGradient id="gmHalo"><stop offset="0" stop-color="#ff8fc0" stop-opacity=".55"/><stop offset="1" stop-color="#ff8fc0" stop-opacity="0"/></radialGradient>
+    <clipPath id="gmBody"><circle cx="256" cy="246" r="132"/></clipPath>
   </defs>
-  <rect width="512" height="512" fill="url(#bg)"/>
-  <rect width="512" height="512" fill="url(#glow)"/>
-  <g transform="translate(256 262) rotate(-18)" filter="url(#sh)">
-    <circle r="150" fill="url(#bot)"/>
-    <path d="M-150 0 A150 150 0 0 1 150 0 Z" fill="url(#top)"/>
-    <rect x="-156" y="-12" width="312" height="24" rx="12" fill="#fff" stroke="#f0c9d8" stroke-width="3"/>
-    <ellipse cx="-62" cy="-92" rx="44" ry="20" fill="#fff" opacity=".55" transform="rotate(-28 -62 -92)"/>
-    <circle cx="-38" cy="62" r="13" fill="#4a3a4f"/><circle cx="38" cy="62" r="13" fill="#4a3a4f"/>
-    <circle cx="-42" cy="57" r="4.5" fill="#fff"/><circle cx="34" cy="57" r="4.5" fill="#fff"/>
-    <ellipse cx="-66" cy="84" rx="16" ry="9" fill="#ff8fb0" opacity=".6"/><ellipse cx="66" cy="84" rx="16" ry="9" fill="#ff8fb0" opacity=".6"/>
-    <path d="M-14 82 Q0 96 14 82" fill="none" stroke="#4a3a4f" stroke-width="7" stroke-linecap="round"/>
+
+  <rect width="512" height="512" fill="url(#gmBg)"/>
+  <circle cx="256" cy="250" r="190" fill="url(#gmHalo)"/>
+  <circle cx="256" cy="246" r="212" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>
+  <rect width="512" height="512" fill="url(#gmLight)"/>
+
+  <ellipse cx="256" cy="432" rx="120" ry="16" fill="#1c1240" opacity=".45"/>
+
+  <!-- あし -->
+  <path d="M212 366 L206 408" stroke="url(#gmLimb)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M300 366 L306 408" stroke="url(#gmLimb)" stroke-width="20" stroke-linecap="round"/>
+  <ellipse cx="200" cy="414" rx="26" ry="14" fill="#fff"/><ellipse cx="312" cy="414" rx="26" ry="14" fill="#fff"/>
+  <ellipse cx="200" cy="419" rx="22" ry="8" fill="#f0d0dc"/><ellipse cx="312" cy="419" rx="22" ry="8" fill="#f0d0dc"/>
+
+  <!-- うで（左は下、右は手をふる） -->
+  <path d="M132 268 C104 276 96 302 106 320" fill="none" stroke="url(#gmLimb)" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="108" cy="326" r="18" fill="#fff"/>
+  <path d="M380 228 C410 214 420 184 410 160" fill="none" stroke="url(#gmLimb)" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="408" cy="152" r="18" fill="#fff"/>
+  <path d="M436 132 L446 122 M444 150 L458 148 M424 120 L428 106" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+
+  <!-- からだ（カプセル） -->
+  <g clip-path="url(#gmBody)">
+    <rect x="120" y="110" width="272" height="136" fill="url(#gmTop)"/>
+    <rect x="120" y="246" width="272" height="136" fill="url(#gmBot)"/>
+    <ellipse cx="300" cy="360" rx="150" ry="70" fill="#e9c3d2" opacity=".35"/>
   </g>
-  <path d="M410 92 Q410 112 430 112 Q410 112 410 132 Q410 112 390 112 Q410 112 410 92Z" fill="#fff"/>
-  <path d="M96 392 Q96 404 108 404 Q96 404 96 416 Q96 404 84 404 Q96 404 96 392Z" fill="#fff" opacity=".85"/>
+  <rect x="118" y="234" width="276" height="26" rx="13" fill="url(#gmBand)"/>
+  <rect x="130" y="238" width="252" height="5" rx="2.5" fill="#fff" opacity=".8"/>
+  <ellipse cx="200" cy="164" rx="46" ry="22" fill="#fff" opacity=".55" transform="rotate(-30 200 164)"/>
+  <ellipse cx="236" cy="140" rx="10" ry="6" fill="#fff" opacity=".7" transform="rotate(-30 236 140)"/>
+
+  <!-- かお -->
+  <ellipse cx="214" cy="300" rx="14" ry="17" fill="#3d2c42"/><ellipse cx="298" cy="300" rx="14" ry="17" fill="#3d2c42"/>
+  <circle cx="209" cy="293" r="5.5" fill="#fff"/><circle cx="293" cy="293" r="5.5" fill="#fff"/>
+  <circle cx="219" cy="307" r="2.4" fill="#fff"/><circle cx="303" cy="307" r="2.4" fill="#fff"/>
+  <ellipse cx="180" cy="328" rx="18" ry="10" fill="#ff7aa5" opacity=".45"/><ellipse cx="332" cy="328" rx="18" ry="10" fill="#ff7aa5" opacity=".45"/>
+  <path d="M240 326 Q256 344 272 326 Q256 336 240 326Z" fill="#e2557a"/>
+
+  <!-- きらきら -->
+  <path d="M412 330 Q412 350 432 350 Q412 350 412 370 Q412 350 392 350 Q412 350 412 330Z" fill="#ffe17a"/>
+  <path d="M92 150 Q92 162 104 162 Q92 162 92 174 Q92 162 80 162 Q92 162 92 150Z" fill="#fff" opacity=".85"/>
 </svg>
