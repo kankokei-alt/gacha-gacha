@@ -318,63 +318,115 @@
       <ellipse cx="${-r * 0.35}" cy="${-r * 0.5}" rx="${r * 0.3}" ry="${r * 0.18}" fill="#fff" opacity=".7"/>`;
   }
 
-  const CX = 120, CY = 110, GR = 84; // 球体
-  const HX = 88, HY = 290;           // ハンドル中心
+  const HX = 88, HY = 290; // ハンドル中心
 
+  // 箱型のガチャマシン（上: 商品ポップ / 中: 透明な窓 / 下: 銀のパネルとハンドル）
   function machineSVG(m) {
     const c = m.color;
+    const dark = shade(c, -38);
     const rnd = seeded(m.id);
     let caps = '';
-    for (let y = 176; y >= 70; y -= 24) {
-      const half = Math.sqrt(GR * GR - (y - CY) * (y - CY)) - 14;
-      const off = ((176 - y) / 24) % 2 ? 12 : 0;
-      for (let x = CX - half + off; x <= CX + half; x += 25) {
-        const jx = x + (rnd() - 0.5) * 6, jy = y + (rnd() - 0.5) * 6;
-        const col = rnd() < 0.08 ? 'gold' : CAPSULE_COLORS[Math.floor(rnd() * CAPSULE_COLORS.length)];
+    for (let row = 0, y = 190; y >= 128; y -= 21, row++) {
+      for (let x = 50 + (row % 2 ? 11 : 0); x <= 192; x += 23) {
+        const jx = x + (rnd() - 0.5) * 6, jy = y + (rnd() - 0.5) * 5;
+        const col = rnd() < 0.07 ? 'gold' : CAPSULE_COLORS[Math.floor(rnd() * CAPSULE_COLORS.length)];
         caps += `<g transform="translate(${jx.toFixed(1)} ${jy.toFixed(1)}) rotate(${Math.floor(rnd() * 360)})">${capsuleSVG(col, 12)}</g>`;
       }
     }
+    const pop = (m.pop || []).map((key, i) => {
+      const it = ITEMS[`${m.id}.${key}`];
+      if (!it) return '';
+      const x = 46 + i * 52, size = i === 1 ? 52 : 44, y = i === 1 ? 38 : 44;
+      return Art.render(it).replace('<svg ', `<svg x="${x + (i === 1 ? -4 : 0)}" y="${y}" width="${size}" height="${size}" `);
+    }).join('');
     return `
 <svg id="machineSvg" viewBox="0 0 240 365" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ガチャマシン">
   <defs>
-    <radialGradient id="glass" cx="35%" cy="28%" r="80%">
-      <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".45" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#cfe9ff" stop-opacity=".35"/>
-    </radialGradient>
-    <linearGradient id="bodyGrad" x1="0" x2="1">
-      <stop offset="0" stop-color="${shade(c, -8)}"/><stop offset=".45" stop-color="${shade(c, 12)}"/><stop offset="1" stop-color="${shade(c, -18)}"/>
+    <linearGradient id="mBody" x1="0" x2="1">
+      <stop offset="0" stop-color="${shade(c, -14)}"/><stop offset=".3" stop-color="${shade(c, 14)}"/>
+      <stop offset=".62" stop-color="${c}"/><stop offset="1" stop-color="${shade(c, -24)}"/>
+    </linearGradient>
+    <linearGradient id="mChrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbfcfd"/><stop offset=".45" stop-color="#d3d8df"/>
+      <stop offset=".55" stop-color="#eef1f4"/><stop offset="1" stop-color="#a7aeb8"/>
+    </linearGradient>
+    <linearGradient id="mPlate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f6f8"/><stop offset=".5" stop-color="#dfe3e8"/><stop offset="1" stop-color="#c3c9d1"/>
+    </linearGradient>
+    <linearGradient id="mGrip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#cfd5dc"/><stop offset="1" stop-color="#8f97a2"/>
+    </linearGradient>
+    <linearGradient id="mWin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3f9ff"/><stop offset="1" stop-color="#d4e6f5"/>
+    </linearGradient>
+    <linearGradient id="mPop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${shade(c, 70)}"/><stop offset="1" stop-color="#ffffff"/>
     </linearGradient>
     <linearGradient id="goldGrad" x1="0" x2="1"><stop offset="0" stop-color="#ffe680"/><stop offset=".5" stop-color="#ffbf00"/><stop offset="1" stop-color="#ffdf6b"/></linearGradient>
     <linearGradient id="rainbowGrad" x1="0" x2="1">
       <stop offset="0" stop-color="#ff6b6b"/><stop offset=".25" stop-color="#ffd166"/><stop offset=".5" stop-color="#06d6a0"/><stop offset=".75" stop-color="#4cc9f0"/><stop offset="1" stop-color="#b388ff"/>
     </linearGradient>
-    <clipPath id="globeClip"><circle cx="${CX}" cy="${CY}" r="${GR}"/></clipPath>
+    <clipPath id="mWinClip"><rect x="38" y="104" width="164" height="100" rx="7"/></clipPath>
+    <filter id="mShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".25"/></filter>
   </defs>
-  <rect x="100" y="12" width="40" height="18" rx="6" fill="${shade(c, -25)}"/>
-  <circle cx="${CX}" cy="${CY}" r="${GR + 5}" fill="${shade(c, -25)}"/>
-  <circle cx="${CX}" cy="${CY}" r="${GR}" fill="#eef8ff"/>
-  <g clip-path="url(#globeClip)"><g id="globeCaps">${caps}</g></g>
-  <circle cx="${CX}" cy="${CY}" r="${GR}" fill="url(#glass)"/>
-  <path d="M62 78 Q78 44 116 34" stroke="#fff" stroke-width="9" stroke-linecap="round" fill="none" opacity=".75"/>
-  <rect x="16" y="188" width="208" height="18" rx="9" fill="${shade(c, -25)}"/>
-  <rect x="26" y="200" width="188" height="155" rx="18" fill="url(#bodyGrad)"/>
-  <rect x="44" y="216" width="152" height="34" rx="9" fill="#fff"/>
-  <text x="120" y="239" text-anchor="middle" font-size="15" font-weight="800" fill="${shade(c, -45)}">${m.icon} 🎫1枚</text>
-  <rect x="150" y="262" width="44" height="50" rx="9" fill="#ffffffdd"/>
-  <rect x="169" y="270" width="6" height="24" rx="3" fill="#555"/>
-  <text x="172" y="306" font-size="8" font-weight="800" text-anchor="middle" fill="#777">TICKET</text>
+
+  <ellipse cx="120" cy="357" rx="104" ry="6" fill="#000" opacity=".14"/>
+  <rect x="20" y="8" width="200" height="346" rx="22" fill="url(#mBody)" stroke="${dark}" stroke-width="3"/>
+  <rect x="27" y="14" width="10" height="330" rx="5" fill="#fff" opacity=".22"/>
+  <rect x="24" y="12" width="192" height="36" rx="18" fill="#fff" opacity=".14"/>
+
+  <g filter="url(#mShadow)">
+    <rect x="32" y="20" width="176" height="72" rx="12" fill="url(#mPop)" stroke="${dark}" stroke-width="2"/>
+  </g>
+  <path d="M32 32 Q32 20 44 20 L196 20 Q208 20 208 32 L208 38 L32 38Z" fill="${shade(c, -10)}"/>
+  <text x="120" y="33.5" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" letter-spacing="1">${esc(m.name)}</text>
+  <circle cx="40" cy="29" r="2" fill="#fff" opacity=".7"/><circle cx="200" cy="29" r="2" fill="#fff" opacity=".7"/>
+  ${pop}
+
+  <rect x="32" y="98" width="176" height="112" rx="11" fill="${dark}"/>
+  <rect x="38" y="104" width="164" height="100" rx="7" fill="url(#mWin)"/>
+  <g clip-path="url(#mWinClip)">
+    <g id="globeCaps">${caps}</g>
+    <rect x="38" y="104" width="164" height="14" fill="#000" opacity=".06"/>
+    <path d="M60 104 L104 104 L58 204 L38 204 L38 150Z" fill="#fff" opacity=".28"/>
+    <path d="M116 104 L130 104 L84 204 L70 204Z" fill="#fff" opacity=".18"/>
+  </g>
+  <rect x="38" y="104" width="164" height="100" rx="7" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/>
+
+  <g transform="translate(192 98) rotate(-8)">
+    <rect x="-17" y="-10" width="38" height="20" rx="10" fill="#ffd23f" stroke="${dark}" stroke-width="1.6"/>
+    <text x="2" y="4.5" text-anchor="middle" font-size="11" font-weight="800" fill="#5a3a00">🎫×1</text>
+  </g>
+  <rect x="26" y="216" width="188" height="6" rx="3" fill="${dark}" opacity=".55"/>
+  <rect x="32" y="228" width="176" height="118" rx="12" fill="url(#mPlate)" stroke="#8a929c" stroke-width="2"/>
+  <rect x="36" y="232" width="168" height="5" rx="2.5" fill="#fff" opacity=".7"/>
+  <circle cx="40" cy="240" r="2" fill="#9aa2ac"/><circle cx="200" cy="240" r="2" fill="#9aa2ac"/>
+  <circle cx="40" cy="338" r="2" fill="#9aa2ac"/><circle cx="200" cy="338" r="2" fill="#9aa2ac"/>
+
+  <rect x="148" y="240" width="48" height="44" rx="8" fill="#2d3238" stroke="#1d2126" stroke-width="1.5"/>
+  <rect x="169" y="248" width="6" height="22" rx="3" fill="#0e1012"/>
+  <rect x="170" y="249" width="2" height="20" rx="1" fill="#5d6570"/>
+  <text x="172" y="279" text-anchor="middle" font-size="7" font-weight="800" fill="#c9ced6" letter-spacing=".5">TICKET</text>
+
+  <circle cx="${HX}" cy="${HY}" r="38" fill="url(#mChrome)" stroke="#7d848e" stroke-width="2.5"/>
+  <circle cx="${HX}" cy="${HY}" r="31" fill="#e9ecf0" stroke="#aab1ba" stroke-width="1.5"/>
   <g id="handleRot" transform="rotate(0 ${HX} ${HY})">
-    <circle cx="${HX}" cy="${HY}" r="34" fill="#f6f6f6" stroke="#cfcfcf" stroke-width="3"/>
-    <rect x="${HX - 36}" y="${HY - 8}" width="72" height="16" rx="8" fill="#d8d8d8" stroke="#b3b3b3" stroke-width="2"/>
-    <circle cx="${HX}" cy="${HY}" r="6" fill="#9a9a9a"/>
+    <rect x="${HX - 36}" y="${HY - 9}" width="72" height="18" rx="9" fill="url(#mGrip)" stroke="#6f7782" stroke-width="2"/>
+    <path d="M${HX - 26} ${HY - 5} L${HX - 26} ${HY + 5} M${HX - 20} ${HY - 5} L${HX - 20} ${HY + 5} M${HX + 20} ${HY - 5} L${HX + 20} ${HY + 5} M${HX + 26} ${HY - 5} L${HX + 26} ${HY + 5}" stroke="#9aa2ac" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="${HX}" cy="${HY}" r="9" fill="url(#mChrome)" stroke="#6f7782" stroke-width="2"/>
+    <circle cx="${HX - 2}" cy="${HY - 3}" r="2.4" fill="#fff" opacity=".9"/>
   </g>
   <g id="turnArrow" class="turn-arrow">
-    <path d="M${HX + 30} ${HY - 40} A44 44 0 0 1 ${HX + 44} ${HY + 4}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
-    <path d="M${HX + 36} ${HY + 2} L${HX + 45} ${HY + 14} L${HX + 52} ${HY}" fill="#fff"/>
+    <path d="M${HX + 22} ${HY - 46} A50 50 0 0 1 ${HX + 50} ${HY - 6}" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M${HX + 42} ${HY - 8} L${HX + 51} ${HY + 4} L${HX + 58} ${HY - 10}" fill="${c}"/>
   </g>
+  <text x="${HX}" y="341" text-anchor="middle" font-size="8" font-weight="800" fill="#6b737e" letter-spacing="1">まわす ↻</text>
   <circle id="handleHit" cx="${HX}" cy="${HY}" r="52" fill="transparent"/>
-  <rect x="146" y="318" width="54" height="32" rx="12" fill="#3a3a3a"/>
-  <rect x="150" y="322" width="46" height="12" rx="6" fill="#222"/>
-  <g transform="translate(173 334)"><g id="dropCap" class="drop-cap hidden"></g></g>
+
+  <rect x="144" y="296" width="58" height="44" rx="12" fill="#3a4048" stroke="#1d2126" stroke-width="2"/>
+  <rect x="149" y="301" width="48" height="34" rx="9" fill="#14171a"/>
+  <path d="M149 310 Q149 301 158 301 L188 301 Q197 301 197 310 L197 313 L149 313Z" fill="#fff" opacity=".12"/>
+  <g transform="translate(173 324)"><g id="dropCap" class="drop-cap hidden"></g></g>
 </svg>`;
   }
 
@@ -521,7 +573,7 @@
     setHandle(0);
     S.pending.dropped = true;
     save();
-    setTimeout(() => { Sound.drop(); vib([30, 40, 20]); setPhase('dropped'); }, 250);
+    setTimeout(() => { Sound.drop(); vib([30, 40, 20]); setPhase('dropped'); renderGacha(); }, 250);
   }
 
   function showDropCap() {
@@ -1114,7 +1166,7 @@
         Sound.chime();
         confetti(60);
         const url = Link.adminUrl('use', Link.pack({ id: p.id, p: p.prize, w: p.won, u: p.usedAt }));
-        const msg = `🎟️ ${pr.name}を使います！\n「${pr.desc}」をおねがいします🙏\n${url}`;
+        const msg = `🎟️ ${pr.name}を使います！\n（${pr.desc}）\nよろしくおねがいします🙏\n${url}`;
         openModal(`
           <div class="center"><div class="praise-emo">🎉</div><h3>${esc(pr.name)}を使いました</h3>
           <p>${esc(adminName())}に知らせよう！</p></div>

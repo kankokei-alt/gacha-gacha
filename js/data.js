@@ -9,9 +9,9 @@
  * （上限はありません。運が良い月は多め、悪い月は少なめになります）
  * ================================================================ */
 const PRIZES = [
-  { id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 300, rate: 0.08, desc: 'コンビニスイーツをひとつ' },
-  { id: 'cafe', name: 'カフェチケット', emoji: '☕', value: 800, rate: 0.02, desc: 'カフェでケーキセット' },
-  { id: 'sushi', name: 'お寿司チケット', emoji: '🍣', value: 4000, rate: 0.0025, desc: 'お寿司を食べに行こう' },
+  { id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 200, rate: 0.10, desc: 'コンビニで1人200円くらいのスイーツかおやつを買っていい券' },
+  { id: 'cafe', name: 'カフェ・ランチチケット', emoji: '🍝', value: 2000, rate: 0.01, desc: '休日のお昼ごはんを、カフェやお店で食べられる券' },
+  { id: 'sushi', name: 'お寿司チケット', emoji: '🍣', value: 4000, rate: 0.0025, desc: '回転寿司に行ける券' },
 ];
 // 本物のガチャを1回がまんして認定されたときにもらえるガチャ券（管理ページで増減できる）
 const GAMAN_TICKETS = 3;
@@ -44,7 +44,7 @@ const TYPES = {
 // [key, 名前, レア度, ひとこと, タイプ(パチモンのみ)]  絵は js/art.js
 const MACHINES = [
   {
-    id: 'pachimon', name: 'パチモン', icon: '🐾', sign: 'gachamon', color: '#5b8def', unlock: 1, compReward: 10,
+    id: 'pachimon', name: 'パチモン', icon: '🐾', sign: 'gachamon', pop: ['hinokokko', 'gachamon', 'mizupuku'], color: '#5b8def', unlock: 1, compReward: 10,
     desc: 'どこかで見たことがあるような、ないような。全40種のふしぎな生きもの。',
     items: [
       ['moririn', 'モリリン', 'N', 'あたまの芽は、日なたぼっこをすると少しだけ伸びる。水をかけるとよろこぶ。', ['くさ']],
@@ -90,7 +90,7 @@ const MACHINES = [
     ],
   },
   {
-    id: 'family', name: '家族', icon: '👪', sign: 'haru', color: '#ff9f5a', unlock: 1, compReward: 5,
+    id: 'family', name: '家族', icon: '👪', sign: 'haru', pop: ['hiro', 'haru', 'hashiji'], color: '#ff9f5a', unlock: 1, compReward: 5,
     desc: 'ひろとはるの、にぎやかな家族。伝説のふたりにも会えるかも。',
     items: [
       ['hiro', 'ひろ', 'SR', 'はるのためにこのガチャを用意した人。メガネの奥で、いつもはるのがまんを見守っている。手には認定のハンコ。'],
@@ -154,7 +154,7 @@ const ACHIEVEMENTS = [
   { id: 'pull100', icon: '🎠', name: 'ガチャ100回', desc: 'ガチャを100回まわす', reward: 3, test: (s) => s.totalPulls >= 100 },
   { id: 'pull300', icon: '🏰', name: 'ガチャの申し子', desc: 'ガチャを300回まわす', reward: 5, test: (s) => s.totalPulls >= 300 },
   { id: 'prize1', icon: '🎁', name: 'はじめての当たり', desc: 'リアルご褒美をはじめて当てる', reward: 1, test: (s) => s.prizes.length >= 1 },
-  { id: 'prizeCafe', icon: '☕', name: 'カフェタイム', desc: 'カフェチケットを当てる', reward: 1, test: (s) => s.prizes.some((p) => p.prize === 'cafe') },
+  { id: 'prizeCafe', icon: '🍝', name: 'ランチタイム', desc: 'カフェ・ランチチケットを当てる', reward: 1, test: (s) => s.prizes.some((p) => p.prize === 'cafe') },
   { id: 'prizeSushi', icon: '🍣', name: 'お寿司だ！', desc: 'お寿司チケットを当てる', reward: 2, test: (s) => s.prizes.some((p) => p.prize === 'sushi') },
   { id: 'sr1', icon: '🌟', name: 'キラキラ発見', desc: 'スーパーレアをはじめて手に入れる', reward: 1, test: (s) => ownedIn(s, allItems().filter((i) => i.rarity === 'SR')) >= 1 },
   { id: 'se1', icon: '🔮', name: 'ひみつのとびら', desc: '伝説（シークレット）にはじめて出会う', reward: 3, test: (s) => ownedIn(s, allItems().filter((i) => i.rarity === 'SE')) >= 1 },
