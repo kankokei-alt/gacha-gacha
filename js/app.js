@@ -246,6 +246,48 @@
     save();
   }
 
+  /* ---------------- 時間でたまるガチャ券 ---------------- */
+
+  const TIMER_MS = TIMER_HOURS * 3600 * 1000;
+
+  // 前回から TIMER_HOURS 時間たつごとに1枚。開いていない間も TIMER_MAX 枚まではたまる
+  function accrueTimer(silent = false) {
+    const now = Date.now();
+    if (!S.timerAt) { S.timerAt = now; save(); return 0; }
+    const n = Math.floor((now - S.timerAt) / TIMER_MS);
+    if (n <= 0) return 0;
+    const add = Math.min(n, TIMER_MAX);
+    S.tickets += add;
+    S.timerAt = n > TIMER_MAX ? now : S.timerAt + n * TIMER_MS;
+    save();
+    if (!silent) {
+      toast(`⏰ 時間でガチャ券がたまったよ！ 🎫 +${add}`, 'gold');
+      Sound.coin();
+    }
+    renderAll();
+    return add;
+  }
+
+  function timerLeftText() {
+    const left = Math.max(0, (S.timerAt || Date.now()) + TIMER_MS - Date.now());
+    const h = Math.floor(left / 3600000), m = Math.ceil((left % 3600000) / 60000);
+    if (m === 60) return `${h + 1}時間0分`;
+    return h ? `${h}時間${m}分` : `${m}分`;
+  }
+
+  function showTicketInfo() {
+    openModal(`
+      <h3>🎫 ガチャ券のもらい方</h3>
+      <ul class="howto">
+        <li>⏰ <b>${TIMER_HOURS}時間ごとに1枚</b>（つぎの1枚まで あと${timerLeftText()}）<br><span class="muted small">開いていない間も${TIMER_MAX}枚まではたまります</span></li>
+        <li>🌞 毎日のログインで1枚（7日目は${LOGIN_TICKETS[6]}枚）</li>
+        <li>💪 本物のガチャをがまんして認定されると ${GAMAN_TICKETS}枚</li>
+        <li>⭐ レベルアップ・🏅 実績でももらえる</li>
+      </ul>
+      <button class="btn primary wide" data-close>OK</button>`);
+  }
+  $('#ticketPill').addEventListener('click', showTicketInfo);
+
   /* ---------------- ログインボーナス ---------------- */
 
   function checkDay() {
@@ -831,6 +873,7 @@
     $('#lvTitle').textContent = titleFor(li.lv);
     $('#xpFill').style.width = `${(li.cur / li.need) * 100}%`;
     $('#tickets').textContent = fmt(S.tickets);
+    $('#timerNext').textContent = `⏰ 次の1枚まで ${timerLeftText()}`;
     $('#prizeDot').classList.toggle('hidden', !S.prizes.some((p) => !p.usedAt));
     $('#gamanDot').classList.toggle('hidden', !S.gaman.some((g) => g.status === 'pending'));
   }
@@ -1299,7 +1342,7 @@
       <label class="switch"><input type="checkbox" id="setVib" ${S.settings.vib ? 'checked' : ''}> 📳 バイブレーション（Android）</label>
       <h4>📖 あそびかた</h4>
       <ul class="howto">
-        <li>🎫 ガチャ券1枚で1回まわせる。毎日ログインでもらえる</li>
+        <li>🎫 ガチャ券1枚で1回まわせる。${TIMER_HOURS}時間ごとに1枚たまるほか、毎日のログインでももらえる</li>
         <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 🎫${GAMAN_TICKETS}枚</li>
         <li>🎁 まわすと、たまに<b>本物のご褒美チケット</b>が当たる！「ごほうび」タブから使える</li>
         <li>🧸 はずれのときはキャラ（ガチャモン・家族）が出て、ずかんにたまる</li>
@@ -1368,8 +1411,10 @@
   /* ---------------- 起動 ---------------- */
 
   checkDay();
+  accrueTimer();
   checkAchievements();
   renderAll();
+  setInterval(() => { accrueTimer(); renderHeader(); }, 30000);
 
   const incoming = Link.readHash();
   if (incoming) {
@@ -1379,10 +1424,13 @@
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && S.login.last !== today()) {
+    if (document.visibilityState !== 'visible') return;
+    if (S.login.last !== today()) {
       checkDay();
       renderAll();
     }
+    accrueTimer();
+    renderHeader();
   });
 
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
