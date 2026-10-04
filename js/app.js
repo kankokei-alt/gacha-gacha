@@ -436,7 +436,7 @@
 
   function rollPrize() {
     let r = Math.random();
-    for (const p of PRIZES) {
+    for (const p of GACHA_PRIZES) {
       if (r < p.rate) return p;
       r -= p.rate;
     }
@@ -681,7 +681,35 @@
     save();
     addXp(10 + (isNew ? 15 : 0) + RARITY[it.rarity].xp);
     checkAchievements();
+    if (isNew) checkCompletePrize(it.machine);
     return { isNew };
+  }
+
+  // ガチャモンを全種類あつめたら、特別なご褒美（豪華ディナー）を1回だけプレゼント
+  function checkCompletePrize(machineId) {
+    const prizeId = COMPLETE_PRIZES[machineId];
+    const m = machine(machineId);
+    if (!prizeId || ownedIn(S, m.items) !== m.items.length) return;
+    if (S.prizes.some((p) => p.prize === prizeId)) return;
+    const pr = PRIZE_BY_ID[prizeId];
+    S.prizes.unshift({ id: Link.uid(), prize: prizeId, won: new Date().toISOString(), usedAt: null });
+    save();
+    afterModal(() => {
+      Sound.fanfare('PRIZE');
+      confetti(220);
+      vib([60, 80, 60, 80, 120]);
+      openModal(`
+        <div class="center">
+          <div class="praise-emo">🏆</div>
+          <h3>${esc(m.name)} 全${m.items.length}種コンプリート！</h3>
+          <div class="ticket-big"><div class="tb-emo">${pr.emoji}</div><div><b>${esc(pr.name)}</b><small>${esc(pr.desc)}</small></div></div>
+          <p>ずっとがまんしてきたごほうび！<br>「ごほうび」タブに入りました</p>
+          <button class="btn primary wide" id="goPrizeDinner">ごほうびを見る</button>
+          <button class="btn wide" data-close>とじる</button>
+        </div>`, (root) => {
+        $('#goPrizeDinner', root).addEventListener('click', () => { closeModal(); switchTab('prize'); });
+      });
+    });
   }
 
   // level: N/R/SR/SE/PRIZE（演出の強さ）
@@ -834,7 +862,7 @@
     const unused = S.prizes.filter((p) => !p.usedAt).length;
     $('#prizeStrip').innerHTML = `
       <div class="prize-strip-title">🎁 当たるかも！リアルご褒美</div>
-      <div class="prize-chips">${PRIZES.map((p) => `<span class="pchip">${p.emoji} ${esc(p.name.replace('チケット', ''))}</span>`).join('')}</div>
+      <div class="prize-chips">${GACHA_PRIZES.map((p) => `<span class="pchip">${p.emoji} ${esc(p.name.replace('チケット', ''))}</span>`).join('')}</div>
       ${unused ? `<button class="link" id="goPrize">🎟️ 使っていないご褒美が ${unused}枚 あるよ ›</button>` : ''}`;
     $('#goPrize')?.addEventListener('click', () => switchTab('prize'));
 
@@ -844,10 +872,10 @@
     btn.classList.toggle('empty', !busy && S.tickets < 1);
 
     const totalW = m.items.reduce((a, it) => a + RARITY[it.rarity].weight, 0);
-    const missRate = 1 - PRIZES.reduce((a, p) => a + p.rate, 0);
+    const missRate = 1 - GACHA_PRIZES.reduce((a, p) => a + p.rate, 0);
     $('#lineup').innerHTML = `<summary>中身と出やすさ</summary>
       <p class="lu-head">🎁 リアルご褒美（どのマシンでも同じ）</p>
-      <div class="lineup-grid">${PRIZES.map((p) => `<div class="lu">
+      <div class="lineup-grid">${GACHA_PRIZES.map((p) => `<div class="lu">
           <span class="lu-emo">${p.emoji}</span><span class="lu-name">${esc(p.name)}</span>
           <span class="badge prize">当たり</span><span class="lu-p">${(p.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%</span></div>`).join('')}</div>
       <p class="lu-head">🧸 はずれのときのキャラ（ずかんに登録）</p>
@@ -1142,9 +1170,18 @@
         ${unused.length ? unused.map((p) => ticket(p, true)).join('') : '<p class="muted">まだありません。ガチャで当てよう！</p>'}
       </div>
       <div class="card"><h3>🎁 当たりの種類</h3>
-        <ul class="plist">${PRIZES.map((p) => `<li><span class="pl-emo">${p.emoji}</span><div><b>${esc(p.name)}</b><small class="muted">${esc(p.desc)}</small></div><span class="pl-rate">${(p.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%</span></li>`).join('')}</ul>
+        <ul class="plist">${GACHA_PRIZES.map((p) => `<li><span class="pl-emo">${p.emoji}</span><div><b>${esc(p.name)}</b><small class="muted">${esc(p.desc)}</small></div><span class="pl-rate">${(p.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%</span></li>`).join('')}</ul>
         <p class="muted small">1回まわすごとに、この確率で当たります。</p>
       </div>
+      ${Object.entries(COMPLETE_PRIZES).map(([mid, pid]) => {
+        const m = machine(mid), pr = PRIZE_BY_ID[pid], got = ownedIn(S, m.items), done = S.prizes.some((p) => p.prize === pid);
+        return `<div class="card special-prize">
+          <h3>🏆 コンプリート特典</h3>
+          <div class="ticket-big"><div class="tb-emo">${pr.emoji}</div><div><b>${esc(pr.name)}</b><small>${esc(pr.desc)}</small></div></div>
+          ${done ? '<p class="center"><b>🎉 獲得ずみ！</b></p>' : `<p class="muted small">${esc(m.name)}をぜんぶ集めるともらえます（いま ${got}/${m.items.length}）</p>
+          <div class="bar"><i style="width:${(got / m.items.length) * 100}%"></i></div>`}
+        </div>`;
+      }).join('')}
       ${used.length ? `<div class="card"><h3>📜 使ったチケット</h3>${used.map((p) => ticket(p, false)).join('')}</div>` : ''}`;
   }
 
@@ -1190,7 +1227,7 @@
       const g = ownedIn(S, m.items);
       return `<div class="zk-sec" style="--c:${m.color}">
         <h3>${m.icon} ${esc(m.name)} <small>${g}/${m.items.length}</small></h3>
-        <p class="muted small zk-desc">${esc(m.desc)}</p>
+        <p class="muted small zk-desc">${esc(m.desc)}${COMPLETE_PRIZES[m.id] ? `<br>🏆 コンプすると <b>${esc(PRIZE_BY_ID[COMPLETE_PRIZES[m.id]].name)}</b>！` : ''}</p>
         <div class="bar"><i style="width:${(g / m.items.length) * 100}%"></i></div>
         <div class="zk-grid">${m.items.map((it) => {
           const n = S.collection[it.id] || 0;
@@ -1265,7 +1302,7 @@
         <li>🎫 ガチャ券1枚で1回まわせる。毎日ログインでもらえる</li>
         <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 🎫${GAMAN_TICKETS}枚</li>
         <li>🎁 まわすと、たまに<b>本物のご褒美チケット</b>が当たる！「ごほうび」タブから使える</li>
-        <li>🧸 はずれのときはキャラ（パチモン・家族）が出て、ずかんにたまる</li>
+        <li>🧸 はずれのときはキャラ（ガチャモン・家族）が出て、ずかんにたまる</li>
         <li>🛟 同じガチャで${PITY}回つづけてかぶると、次は必ずNEW</li>
       </ul>
       <h4>💾 バックアップ</h4>
