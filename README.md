@@ -82,7 +82,7 @@ npx serve .        # または python3 -m http.server
 ```
 
 レア度は `N` / `R` / `SR` / `SE`（伝説）。キャラを足すときは、`js/art.js` に同じIDのイラストも追加します。
-内容を更新したら、`sw.js` の `CACHE` の名前（`pocket-gacha-v9` → `v10`）も変えると確実に反映されます。
+内容を更新したら、`sw.js` の `CACHE` の名前（`pocket-gacha-v10` → `v11`）も変えると確実に反映されます。
 
 ## ファイル構成
 
