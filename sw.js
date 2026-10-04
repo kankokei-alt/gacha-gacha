@@ -1,8 +1,8 @@
 /* オフラインでも遊べるようにアプリ本体をキャッシュする */
-const CACHE = 'pocket-gacha-v11';
+const CACHE = 'pocket-gacha-v12';
 const ASSETS = [
   './', 'index.html', 'css/style.css', 'js/data.js', 'js/art.js', 'js/link.js', 'js/app.js', 'admin.html', 'js/admin.js', 'manifest.webmanifest',
-  'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  'icons/gachamon.svg', 'icons/gachamon-192.png', 'icons/gachamon-512.png', 'icons/gachamon-180.png',
 ];
 
 self.addEventListener('install', (e) => {
