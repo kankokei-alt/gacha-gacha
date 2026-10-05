@@ -372,6 +372,7 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
       <tr><td>💪 がまん認定</td><td><b>1回につき3枚</b>。だんなさんが認定のときに増減できる</td></tr>
       <tr><td>⏰ 時間でたまる</td><td><b>毎日 0時・6時・12時・18時 に1枚ずつ</b>（1日4枚）。開いていない間も4枚まではたまる。右上に「次は12:00（あと○時間○分）」</td></tr>
       <tr><td>🌞 毎日のログイン</td><td>1日1枚、7日連続目は3枚（月に約38枚）</td></tr>
+      <tr><td>🎮 ミニゲーム</td><td>「あそぶ」タブのゲームを<b>5回クリアするごとに1枚</b>（1日3枚まで）</td></tr>
       <tr><td>🎁 だんなさんのプレゼント</td><td>好きな枚数</td></tr>
       <tr><td>⭐ レベルアップ</td><td>1枚</td></tr>
       <tr><td>🏅 実績（全27個・1回だけ）</td><td>1〜10枚</td></tr>
@@ -412,6 +413,7 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
       <tr class="total"><td>差し引き</td><td class="n">約260〜460円 トク</td></tr>
     </table></div>
     <div class="note pink">がまんするほど家計は得になります。いちばん出費が出るのは、がまんの認定ではなく<b>毎日のログイン分（月約38回まわせる → 平均約1,900円）</b>です。出費を減らしたいときは、ここ（⑩）を調整します。</div>
+    <div class="note">🎮 ミニゲームで毎日上限の3枚までもらうと、月に約90回ぶん増えて <b>平均 +約1,300円</b>（上の計算には入っていません）。1日の上限は ⑩ の <code>MINI_DAILY_MAX</code> で変えられます。</div>
     <h3>📅 1か月・1年のイメージ（ガチャモンを回す前提・がまんは週1回）</h3>
     <div class="tw"><table>
       <tr><th></th><th>1日あたり（目安）</th></tr>
@@ -480,10 +482,12 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
     <div class="tree">{ id: 'sweets', name: 'デザートチケット', emoji: '🍮', value: 300, rate: 0.08, desc: 'コンビニスイーツをひとつ' },
 <span class="c">                                                     ↑金額     ↑確率(0.08=8%) ↑説明</span>
 const GAMAN_TICKETS = 3;         <span class="c">← がまん1回でもらえるガチャ券</span>
-const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];   <span class="c">← 1〜7日目のログインボーナス</span></div>
+const LOGIN_TICKETS = [1, 1, 1, 1, 1, 1, 3];   <span class="c">← 1〜7日目のログインボーナス</span>
+const MINI_CLEARS = 5;           <span class="c">← ミニゲームを何回クリアで1枚か</span>
+const MINI_DAILY_MAX = 3;        <span class="c">← ミニゲームでもらえる1日の上限</span></div>
     <div class="note">
       ・<code>id</code>（最初の英字）は変えないでください。すでに当たったチケットが分からなくなります。<br>
-      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v15</code> の数字を1つ上げると、スマホに確実に届きます。<br>
+      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v16</code> の数字を1つ上げると、スマホに確実に届きます。<br>
       ・数字を変えたら、⑦のお金の計算も変わります。Claude に「月の平均はいくらになる？」と聞けば計算できます。
     </div>
     <h3>更新の流れ</h3>
