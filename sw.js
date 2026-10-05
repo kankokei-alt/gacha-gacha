@@ -1,7 +1,7 @@
 /* オフラインでも遊べるようにアプリ本体をキャッシュする */
-const CACHE = 'pocket-gacha-v16';
+const CACHE = 'pocket-gacha-v17';
 const ASSETS = [
-  './', 'index.html', 'css/style.css', 'js/data.js', 'js/art.js', 'js/link.js', 'js/mini.js', 'js/app.js', 'admin.html', 'js/admin.js', 'manifest.webmanifest',
+  './', 'index.html', 'css/style.css', 'js/data.js', 'js/art.js', 'js/link.js', 'js/phys.js', 'js/gomoku.js', 'js/mini.js', 'js/app.js', 'admin.html', 'js/admin.js', 'manifest.webmanifest',
   'icons/gachamon.svg', 'icons/gachamon-192.png', 'icons/gachamon-512.png', 'icons/gachamon-180.png',
 ];
 
