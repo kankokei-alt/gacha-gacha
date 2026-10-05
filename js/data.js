@@ -24,8 +24,8 @@ const LEVELUP_TICKETS = 1;
 // 時間でたまるガチャ券: 毎日この時刻（時）になるたびに1枚。アプリを開いていなくても TIMER_MAX 枚までたまる
 const TIMER_SLOTS = [0, 6, 12, 18];
 const TIMER_MAX = 4;
-// ミニゲーム: MINI_CLEARS 回クリアするごとにガチャ券1枚。1日にもらえるのは MINI_DAILY_MAX 枚まで
-const MINI_CLEARS = 5;
+// ミニゲーム: 1回で⭐0〜3こ。⭐を MINI_STARS こあつめるごとにガチャ券1枚。1日にもらえるのは MINI_DAILY_MAX 枚まで
+const MINI_STARS = 10;
 const MINI_DAILY_MAX = 3;
 
 /* ================================================================

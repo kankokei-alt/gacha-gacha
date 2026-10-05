@@ -44,7 +44,7 @@
       selected: MACHINES[0].id,
       settings: { sound: true, vib: true },
       tipDismissed: false,
-      mini: { day: null, got: 0, prog: 0, clears: 0, best: {} }, // ミニゲーム（got: 今日もらったガチャ券, prog: 次の1枚までのクリア数）
+      mini: { day: null, got: 0, stars: 0, best: {}, played: {} }, // ミニゲーム（got: 今日もらったガチャ券, stars: 次の1枚までの⭐）
       createdAt: new Date().toISOString(),
     };
   }
@@ -310,7 +310,7 @@
         <li>⏰ <b>毎日 ${slotLabel()} に1枚ずつ</b>（つぎは ${timerLeftText().at}、あと${timerLeftText().rest}）<br><span class="muted small">開いていない間も${TIMER_MAX}枚まではたまります</span></li>
         <li>🌞 毎日のログインで1枚（7日目は${LOGIN_TICKETS[6]}枚）</li>
         <li>💪 本物のガチャをがまんして認定されると ${GAMAN_TICKETS}枚</li>
-        <li>🎮 ミニゲームを${MINI_CLEARS}回クリアするごとに1枚（1日${MINI_DAILY_MAX}枚まで）</li>
+        <li>🎮 ミニゲームで⭐を${MINI_STARS}こあつめるごとに1枚（1日${MINI_DAILY_MAX}枚まで）</li>
         <li>⭐ レベルアップ・🏅 実績でももらえる</li>
       </ul>
       <button class="btn primary wide" data-close>OK</button>`);
@@ -1356,40 +1356,31 @@
       </div>`);
   });
 
-  /* ---------------- ミニゲーム ---------------- */
+  /* ---------------- ミニゲーム（中身は js/mini.js） ---------------- */
 
-  const WHACK_SEC = 20, WHACK_GOAL = 15, ORDER_N = 16, ORDER_SEC = 20;
-  const MINI_GAMES = [
-    { id: 'memory', icon: '🃏', name: 'ペアさがし', desc: '同じキャラのカードを2枚ずつそろえよう', best: (v) => `${v}手`, better: (a, b) => a < b },
-    { id: 'whack', icon: '🔨', name: 'ガチャモンたたき', desc: `${WHACK_SEC}秒で${WHACK_GOAL}ひきたたこう。オバケットはたたいちゃダメ`, best: (v) => `${v}ひき`, better: (a, b) => a > b },
-    { id: 'order', icon: '🔢', name: 'じゅんばんタッチ', desc: `1から${ORDER_N}まで、${ORDER_SEC}秒以内に順番にタッチ`, best: (v) => `${(v / 1000).toFixed(1)}秒`, better: (a, b) => a < b },
-  ];
-  const miniGame = (id) => MINI_GAMES.find((g) => g.id === id);
-
-  function shuffle(a) {
-    const b = [...a];
-    for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
-    return b;
-  }
+  const miniGame = (id) => Mini.GAMES.find((g) => g.id === id);
+  const starRow = (n, max = 3) => `${'⭐'.repeat(n)}${'☆'.repeat(max - n)}`;
 
   // 日がかわったら今日もらった枚数をリセット
   function miniState() {
     const m = S.mini;
     if (m.day !== today()) { m.day = today(); m.got = 0; }
+    m.stars ||= 0;
+    m.played ||= {};
     return m;
   }
 
-  // 遊んでいるゲーム（タイマーはやめるときにまとめて止める）
+  // 遊んでいるゲーム（タイマーとアニメーションはやめるときにまとめて止める）
   let game = null;
-  function later(fn, ms) { const id = setTimeout(fn, ms); game.timers.push(id); return id; }
   function stopGame() {
     if (!game) return;
-    game.timers.forEach((id) => { clearTimeout(id); clearInterval(id); });
+    game.timers.forEach((id) => clearTimeout(id));
     game = null;
+    $('#miniHub').classList.remove('hidden');
   }
 
-  function progressDots(m) {
-    return `<div class="mg-dots">${Array.from({ length: MINI_CLEARS }, (_, i) => `<i class="${i < m.prog ? 'on' : ''}"></i>`).join('')}</div>`;
+  function starBar(m) {
+    return `<div class="mg-stars">${Array.from({ length: MINI_STARS }, (_, i) => `<i class="${i < m.stars ? 'on' : ''}">⭐</i>`).join('')}</div>`;
   }
 
   function renderMini() {
@@ -1398,11 +1389,11 @@
     $('#miniHub').innerHTML = `
       <div class="card mg-hub">
         ${full ? `<p class="center"><b>🎉 今日のガチャ券は ${MINI_DAILY_MAX}枚 ぜんぶもらったよ！</b><br><span class="muted small">あしたまたもらえるよ。ゲームはこのまま遊べます</span></p>`
-          : `<p class="center"><b>あと ${MINI_CLEARS - m.prog}回</b> クリアで 🎫 ガチャ券 1枚</p>${progressDots(m)}`}
-        <p class="center muted small">今日もらったガチャ券 ${m.got} / ${MINI_DAILY_MAX}枚 ・ これまでのクリア ${m.clears}回</p>
+          : `<p class="center">⭐を <b>${MINI_STARS}こ</b> あつめると 🎫 ガチャ券 1枚 <span class="muted small">（あと${MINI_STARS - m.stars}こ）</span></p>${starBar(m)}`}
+        <p class="center muted small">今日もらったガチャ券 ${m.got} / ${MINI_DAILY_MAX}枚</p>
       </div>`;
     if (game) return;
-    $('#miniArea').innerHTML = MINI_GAMES.map((g) => `
+    $('#miniArea').innerHTML = Mini.GAMES.map((g) => `
       <button class="card mg-pick" data-game="${g.id}">
         <span class="mg-pick-icon">${g.icon}</span>
         <span class="mg-pick-body"><b>${g.name}</b><small>${esc(g.desc)}</small>
@@ -1414,79 +1405,83 @@
   $('#tab-mini').addEventListener('click', (e) => {
     const p = e.target.closest('[data-game]');
     if (p && !game) { startGame(p.dataset.game); return; }
-    if (e.target.id === 'mgQuit') { stopGame(); renderMini(); }
+    if (e.target.id === 'mgQuit' && game) game.quit();
   });
 
-  function startGame(id) {
+  async function startGame(id) {
     stopGame();
-    const g = miniGame(id);
-    game = { id, timers: [] };
+    const def = miniGame(id);
+    const me = { id, timers: [], quit: () => { stopGame(); renderMini(); } };
+    game = me;
+    $('#miniHub').classList.add('hidden');
     $('#miniArea').innerHTML = `
       <div class="card mg-play">
-        <div class="mg-head"><b>${g.icon} ${g.name}</b><span class="mg-stat" id="mgStat"></span><button class="btn mini" id="mgQuit">やめる</button></div>
-        <div class="bar"><i id="mgBar" style="width:100%"></i></div>
+        <div class="mg-head"><b>${def.icon} ${def.name}</b><span class="mg-stat" id="mgStat"></span><button class="btn mini" id="mgQuit">やめる</button></div>
+        <div class="bar hidden"><i id="mgBar"></i></div>
         <div class="mg-board" id="mgBoard"></div>
       </div>`;
-    Sound.click();
-    ({ memory: playMemory, whack: playWhack, order: playOrder })[id]();
     window.scrollTo({ top: 0 });
-  }
-
-  // 3・2・1 のカウントダウンのあとで始める
-  function countdown(then) {
-    const box = document.createElement('div');
-    box.className = 'mg-count';
-    $('#mgBoard').appendChild(box);
-    [3, 2, 1].forEach((n, i) => later(() => { box.textContent = n; Sound.tap(); }, i * 600));
-    later(() => { box.remove(); Sound.pop(); then(); }, 1800);
-  }
-
-  // 残り時間のバー。0になったら onEnd
-  function runClock(sec, onEnd) {
-    const end = Date.now() + sec * 1000;
-    const tick = () => {
-      if (!game) return;
-      const left = Math.max(0, end - Date.now());
-      $('#mgBar').style.width = `${(left / (sec * 1000)) * 100}%`;
-      if (left <= 0) onEnd(); else later(tick, 100);
+    Sound.click();
+    await Mini.preload(def.needs);
+    if (game !== me) return;
+    const alive = () => game === me;
+    const later = (fn, ms) => { if (alive()) me.timers.push(setTimeout(() => { if (alive()) fn(); }, ms)); };
+    const ctx = {
+      box: $('#mgBoard'),
+      sfx: Sound, vib, alive, later,
+      stat: (html) => { $('#mgStat').innerHTML = html; },
+      bar: (f) => { const b = $('#mgBar'); b.parentElement.classList.toggle('hidden', f == null); if (f != null) b.style.width = `${Math.max(0, f) * 100}%`; },
+      toast: (html) => toast(html),
+      frame: (fn) => { const loop = () => { if (alive() && fn() !== false) requestAnimationFrame(loop); }; requestAnimationFrame(loop); },
+      countdown: (then) => {
+        const box = document.createElement('div');
+        box.className = 'mg-count';
+        ctx.box.appendChild(box);
+        [3, 2, 1].forEach((n, i) => later(() => { box.textContent = n; Sound.tap(); }, i * 600));
+        later(() => { box.remove(); Sound.pop(); then(); }, 1800);
+      },
+      counter: (name) => { const m = miniState(); const n = m.played[name] || 0; m.played[name] = n + 1; save(); return n; },
+      quitAs: (label, fn) => { $('#mgQuit').textContent = label; me.quit = fn; },
+      end: (r) => miniEnd(def, r),
     };
-    tick();
+    def.play(ctx);
   }
 
-  function miniClear(id, record) {
+  function miniEnd(def, { stars, record, text = '' }) {
+    if (!game) return;
     stopGame();
-    const g = miniGame(id);
     const m = miniState();
-    m.clears += 1;
-    const isBest = m.best[id] == null || g.better(record, m.best[id]);
-    if (isBest) m.best[id] = record;
-    let got = false;
-    const counted = m.got < MINI_DAILY_MAX;
+    const isBest = stars > 0 && record != null && (m.best[def.id] == null || def.better(record, m.best[def.id]));
+    if (isBest) m.best[def.id] = record;
+    let got = 0;
+    const counted = stars > 0 && m.got < MINI_DAILY_MAX;
     if (counted) {
-      m.prog += 1;
-      if (m.prog >= MINI_CLEARS) { m.prog = 0; m.got += 1; S.tickets += 1; got = true; }
+      m.stars += stars;
+      while (m.stars >= MINI_STARS && m.got < MINI_DAILY_MAX) { m.stars -= MINI_STARS; m.got += 1; S.tickets += 1; got++; }
+      if (m.got >= MINI_DAILY_MAX) m.stars = Math.min(m.stars, MINI_STARS - 1);
     }
     save();
     renderAll();
-    if (got) { Sound.fanfare('SR'); confetti(80); } else { Sound.fanfare('N'); confetti(25); }
+    const buttons = `<div class="row2"><button class="btn" id="mgMenu">ほかのゲーム</button><button class="btn primary" id="mgAgain">もう一回</button></div>
+      ${got ? '<button class="btn ticket wide" id="mgGacha">🎰 ガチャをまわしにいく</button>' : ''}`;
+    if (!stars) {
+      Sound.drop();
+      openModal(`
+        <h3 class="center">😢 ざんねん…</h3>
+        <p class="center big-text">${starRow(0)}</p>
+        <p class="center">${esc(text) || 'あと少し！'}</p>
+        ${record != null ? `<p class="center muted small">きろく ${def.best(record)}</p>` : ''}
+        ${buttons}`, bindEnd(def.id));
+      return;
+    }
+    if (got) { Sound.fanfare('SR'); confetti(90); } else { Sound.fanfare(stars === 3 ? 'R' : 'N'); confetti(15 * stars); }
     openModal(`
-      <h3 class="center">🎉 クリア！</h3>
-      <p class="center big-text">${g.icon} ${g.best(record)}${isBest ? ' <span class="mg-new">ベスト更新！</span>' : ''}</p>
-      ${got ? `<p class="center reward-line">🎫 ガチャ券 +1</p>`
-        : counted ? `${progressDots(m)}<p class="center">あと <b>${MINI_CLEARS - m.prog}回</b> クリアで 🎫1枚</p>`
-        : `<p class="center muted small">今日のガチャ券はもうもらったよ。また あした！</p>`}
-      <div class="row2"><button class="btn" id="mgMenu">ほかのゲーム</button><button class="btn primary" id="mgAgain">もう一回</button></div>
-      ${got ? '<button class="btn ticket wide" id="mgGacha">🎰 ガチャをまわしにいく</button>' : ''}`, bindEnd(id));
-  }
-
-  function miniFail(id, text) {
-    stopGame();
-    renderAll();
-    Sound.drop();
-    openModal(`
-      <h3 class="center">😢 ざんねん…</h3>
-      <p class="center">${text}</p>
-      <div class="row2"><button class="btn" id="mgMenu">ほかのゲーム</button><button class="btn primary" id="mgAgain">もう一回</button></div>`, bindEnd(id));
+      <h3 class="center">${stars === 3 ? '🌟 パーフェクト！' : '🎉 クリア！'}</h3>
+      <p class="center mg-earn">${starRow(stars)}</p>
+      <p class="center"><b>${def.best(record)}</b>${isBest ? ' <span class="mg-new">ベスト更新！</span>' : ''}${text ? `<br><span class="muted small">${esc(text)}</span>` : ''}</p>
+      ${got ? `<p class="center reward-line">🎫 ガチャ券 +${got}</p>` : ''}
+      ${counted ? starBar(m) : '<p class="center muted small">今日のガチャ券はもうもらったよ。また あした！</p>'}
+      ${buttons}`, bindEnd(def.id));
   }
 
   const bindEnd = (id) => (root) => {
@@ -1494,124 +1489,6 @@
     $('#mgMenu', root).addEventListener('click', closeModal);
     $('#mgGacha', root)?.addEventListener('click', () => { closeModal(); switchTab('gacha'); });
   };
-
-  // 🃏 ペアさがし: 8組16枚
-  function playMemory() {
-    const pool = shuffle(allItems().filter((it) => it.rarity !== 'SE')).slice(0, 8);
-    const cards = shuffle([...pool, ...pool]);
-    const board = $('#mgBoard');
-    board.innerHTML = `<div class="mg-grid">${cards.map((it, i) => `
-      <button class="mg-card" data-i="${i}"><span class="mg-back">?</span><span class="mg-front">${emo(it)}</span></button>`).join('')}</div>`;
-    $('#mgBar').parentElement.classList.add('hidden');
-    let open = [], pairs = 0, moves = 0, lock = false;
-    const stat = () => { $('#mgStat').textContent = `${moves}手 ・ ${pairs}/8組`; };
-    stat();
-    board.addEventListener('click', (e) => {
-      const el = e.target.closest('.mg-card');
-      if (!el || !game || lock || el.classList.contains('open')) return;
-      el.classList.add('open');
-      Sound.tap();
-      open.push(el);
-      if (open.length < 2) return;
-      moves++;
-      const [a, b] = open;
-      open = [];
-      if (cards[a.dataset.i].id === cards[b.dataset.i].id) {
-        pairs++;
-        later(() => { a.classList.add('done'); b.classList.add('done'); Sound.pop(); }, 250);
-        stat();
-        if (pairs === 8) later(() => miniClear('memory', moves), 800);
-        return;
-      }
-      stat();
-      lock = true;
-      later(() => { a.classList.remove('open'); b.classList.remove('open'); lock = false; }, 750);
-    });
-  }
-
-  // 🔨 ガチャモンたたき: 穴から出てくるガチャモンをたたく
-  function playWhack() {
-    const board = $('#mgBoard');
-    const good = MACHINES[0].items.filter((it) => it.rarity === 'N' && it.id !== 'pachimon.obaketto');
-    const ghost = ITEMS['pachimon.obaketto'];
-    board.innerHTML = `<div class="mg-holes">${Array.from({ length: 9 }, (_, i) => `<button class="mg-hole" data-h="${i}"><span class="mg-mole"></span></button>`).join('')}</div>`;
-    const holes = $$('.mg-hole', board);
-    let score = 0, playing = false;
-    const stat = () => { $('#mgStat').textContent = `${score} / ${WHACK_GOAL}ひき`; };
-    stat();
-
-    function popUp(t0) {
-      if (!game || !playing) return;
-      const free = holes.filter((h) => !h.classList.contains('up'));
-      if (free.length) {
-        const h = rand(free);
-        const bad = Math.random() < 0.2;
-        h.dataset.bad = bad ? '1' : '';
-        h.firstElementChild.innerHTML = emo(bad ? ghost : rand(good));
-        h.classList.remove('hit');
-        h.classList.add('up');
-        const stay = Math.max(600, 1000 - (Date.now() - t0) / 40);
-        const id = later(() => h.classList.remove('up'), stay);
-        h.dataset.timer = id;
-      }
-      // だんだん速くなる
-      later(() => popUp(t0), Math.max(380, 700 - (Date.now() - t0) / 50));
-    }
-
-    board.addEventListener('pointerdown', (e) => {
-      const h = e.target.closest('.mg-hole');
-      if (!h || !game || !playing || !h.classList.contains('up')) return;
-      clearTimeout(Number(h.dataset.timer));
-      h.classList.remove('up');
-      h.classList.add('hit');
-      if (h.dataset.bad) { score = Math.max(0, score - 2); Sound.drop(); vib(80); toast('👻 オバケットだった！ -2'); }
-      else { score++; Sound.pop(); vib(15); }
-      stat();
-    });
-
-    countdown(() => {
-      playing = true;
-      popUp(Date.now());
-      runClock(WHACK_SEC, () => {
-        playing = false;
-        if (score >= WHACK_GOAL) miniClear('whack', score);
-        else miniFail('whack', `${score}ひき でした。あと ${WHACK_GOAL - score}ひき！`);
-      });
-    });
-  }
-
-  // 🔢 じゅんばんタッチ: 1から順番に
-  function playOrder() {
-    const board = $('#mgBoard');
-    const nums = shuffle(Array.from({ length: ORDER_N }, (_, i) => i + 1));
-    board.innerHTML = `<div class="mg-grid">${nums.map((n) => `<button class="mg-num" data-n="${n}" style="--c:${CAPSULE_COLORS[n % CAPSULE_COLORS.length]}">${n}</button>`).join('')}</div>`;
-    let next = 1, t0 = 0, playing = false;
-    const stat = () => { $('#mgStat').textContent = `つぎは ${next}`; };
-    stat();
-    board.addEventListener('pointerdown', (e) => {
-      const b = e.target.closest('.mg-num');
-      if (!b || !game || !playing || b.classList.contains('done')) return;
-      if (Number(b.dataset.n) !== next) {
-        b.classList.remove('miss'); void b.offsetWidth; b.classList.add('miss');
-        Sound.tone(180, 0.12, { type: 'square', vol: 0.06 });
-        return;
-      }
-      b.classList.add('done');
-      Sound.tone(500 + next * 40, 0.08, { type: 'triangle', vol: 0.15 });
-      next++;
-      if (next > ORDER_N) { playing = false; miniClear('order', Date.now() - t0); return; }
-      stat();
-    });
-    countdown(() => {
-      playing = true;
-      t0 = Date.now();
-      runClock(ORDER_SEC, () => {
-        if (!playing) return;
-        playing = false;
-        miniFail('order', `${next - 1}まで タッチできたよ。おしい！`);
-      });
-    });
-  }
 
   /* ---------------- 設定 ---------------- */
 
@@ -1632,7 +1509,7 @@
         <li>🎫 ガチャ券1枚で1回まわせる。毎日${slotLabel()}に1枚ずつとどくほか、毎日のログインでももらえる</li>
         <li>💪 本物のガチャをがまんしたら「がまん」タブから申請 → ${esc(adminName())}が認定すると 🎫${GAMAN_TICKETS}枚</li>
         <li>🎁 まわすと、たまに<b>本物のご褒美チケット</b>が当たる！「ごほうび」タブから使える</li>
-        <li>🎮「あそぶ」タブのミニゲームを${MINI_CLEARS}回クリアすると 🎫1枚（1日${MINI_DAILY_MAX}枚まで）</li>
+        <li>🎮「あそぶ」タブのミニゲームで⭐を${MINI_STARS}こあつめると 🎫1枚（1日${MINI_DAILY_MAX}枚まで）</li>
         <li>🧸 はずれのときはキャラ（ガチャモン・家族）が出て、ずかんにたまる</li>
         <li>🛟 同じガチャで${PITY}回つづけてかぶると、次は必ずNEW</li>
       </ul>
