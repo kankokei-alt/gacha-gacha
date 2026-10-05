@@ -401,11 +401,11 @@ const Mini = (() => {
       const b = cand[0];
       if (!b) return;
       const q = 1 - Math.abs(b.x - claw.x) / b.r; // 1 = ど真ん中
-      if (q < 0.45) return;
+      if (q < 0.5) return;
       claw.held = b;
       b.held = true;
       // ずれているほど、運ぶとちゅうで落ちやすい
-      claw.slip = q > 0.82 ? (Math.random() < 0.3 ? 1 : 0) : Math.random() < 0.75 ? 1 : 0;
+      claw.slip = q > 0.85 ? (Math.random() < 0.4 ? 1 : 0) : Math.random() < 0.85 ? 1 : 0;
       claw.slipAt = 0.2 + Math.random() * 0.75;
       claw.from = claw.x;
     }
@@ -431,7 +431,7 @@ const Mini = (() => {
         if (c.x <= HOME) { c.state = 'drop'; c.wait = 0; }
       } else if (c.state === 'drop') {
         c.open = Math.min(1, c.open + 0.06);
-        if (c.open > 0.6) letGo();
+        if (c.open > 0.6) { if (c.held) c.held.carried = true; letGo(); }
         if (++c.wait > 70) {
           c.state = 'idle';
           if (tries <= 0) { over = true; ctx.end({ stars: Math.min(3, got), record: got }); return false; }
@@ -440,6 +440,8 @@ const Mini = (() => {
       if (c.state === 'up' && c.held && c.slip && Math.random() < 0.004) { letGo(); c.slip = 0; ctx.sfx.drop(); }
       if (c.held) { c.held.x = c.x; c.held.y = tipY() + c.held.r * 0.55; }
       world.step();
+      // アームで運んだカプセルだけが取り出し口に入れる
+      world.bodies.forEach((b) => { if (!b.carried && !b.held && b.x < CHUTE + 10 + b.r) b.x = CHUTE + 10 + b.r; });
       // 取り出し口に落ちたらGET
       world.bodies.filter((b) => !b.held && b.x < CHUTE && b.y > H - 70).forEach((b) => {
         world.remove(b);
