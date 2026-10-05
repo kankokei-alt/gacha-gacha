@@ -540,9 +540,10 @@ a.btn { text-decoration: none; text-align: center; display: inline-block; }
 
 /* ---------- ミニゲーム ---------- */
 .mg-hub p { margin: 4px 0; }
-.mg-dots { display: flex; justify-content: center; gap: 10px; margin: 8px 0; }
-.mg-dots i { width: 22px; height: 22px; border-radius: 50%; background: #f6e7ee; box-shadow: inset 0 0 0 2px var(--line); }
-.mg-dots i.on { background: linear-gradient(180deg, #ff8dba 50%, #fff 50%); box-shadow: inset 0 0 0 2px var(--pink); animation: popin .3s; }
+.mg-stars { display: flex; justify-content: center; gap: 3px; margin: 8px 0; }
+.mg-stars i { font-style: normal; font-size: 1.15rem; filter: grayscale(1) opacity(.25); }
+.mg-stars i.on { filter: none; animation: popin .3s; }
+.mg-earn { font-size: 2.2rem; letter-spacing: 4px; margin: 4px 0; }
 .mg-pick { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; color: inherit; }
 .mg-pick:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
 .mg-pick-icon { font-size: 2.2rem; }
@@ -550,50 +551,48 @@ a.btn { text-decoration: none; text-align: center; display: inline-block; }
 .mg-pick-body small { color: var(--muted); }
 .mg-pick-body .mg-best { color: var(--gold); font-weight: 800; }
 .mg-pick-go { font-size: 1.6rem; color: var(--pink-d); }
+.mg-play { padding: 10px; }
 .mg-head { display: flex; align-items: center; gap: 8px; }
-.mg-head b { flex: 1; }
-.mg-stat { font-weight: 800; color: var(--pink-d); font-size: .9rem; }
+.mg-head b { flex: 1; min-width: 0; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mg-stat { font-weight: 800; color: var(--pink-d); font-size: .85rem; white-space: nowrap; }
 .mg-board { position: relative; margin-top: 8px; }
+.mg-canvas { display: block; border-radius: 14px; box-shadow: inset 0 0 0 2px var(--line); touch-action: none; }
 .mg-new { font-size: .8rem; color: #fff; background: var(--gold); border-radius: 999px; padding: 2px 8px; vertical-align: middle; }
 .mg-count {
   position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center;
   font-size: 4rem; font-weight: 800; color: var(--pink-d); background: rgba(255, 255, 255, .7); border-radius: 16px;
 }
-.mg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
-/* ペアさがし */
-.mg-card { position: relative; aspect-ratio: 1; border: 0; padding: 0; background: none; perspective: 400px; }
-.mg-card > span {
-  position: absolute; inset: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .3s;
-}
-.mg-back { background: linear-gradient(180deg, #ff9fc5 50%, #fff 50%); box-shadow: inset 0 0 0 2px #f6b8d0; color: #fff; font-size: 1.4rem; font-weight: 800; }
-.mg-front { background: #fff; box-shadow: inset 0 0 0 2px var(--line); transform: rotateY(180deg); }
-.mg-card.open .mg-back { transform: rotateY(-180deg); }
-.mg-card.open .mg-front { transform: rotateY(0); }
-.mg-card.done .mg-front { background: #fff6d6; box-shadow: inset 0 0 0 2px #f5d36b; animation: flash .4s; }
-.mg-front .emo { width: 80%; }
-.mg-front .emo svg.art { width: 100%; height: auto; }
+/* 進化パズル: 進化のじゅんばん */
+.mg-evo { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 1px; margin-top: 8px; }
+.mg-evo i { font-style: normal; color: var(--muted); font-size: .7rem; }
+.mg-evo > span .emo svg.art { width: 24px; height: 24px; }
+.mg-evo > span:not(.got) .emo { filter: grayscale(1) opacity(.35); }
+.mg-evo > span.got .emo { animation: popin .3s; }
 
-/* ガチャモンたたき */
-.mg-holes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.mg-hole {
-  position: relative; aspect-ratio: 1; border: 0; padding: 0; overflow: hidden; border-radius: 50% 50% 22px 22px;
-  background: radial-gradient(70% 30% at 50% 88%, #c99a83 0 98%, transparent), linear-gradient(180deg, #fff0f6, #ffe3ee);
-  box-shadow: inset 0 0 0 2px var(--line);
-}
-.mg-mole { position: absolute; left: 12%; right: 12%; bottom: 6%; transform: translateY(115%); transition: transform .12s; pointer-events: none; }
-.mg-mole .emo { width: 100%; }
-.mg-mole .emo svg.art { width: 100%; height: auto; }
-.mg-hole.up .mg-mole { transform: translateY(0); }
-.mg-hole.hit .mg-mole { transform: translateY(0) scale(.6); opacity: 0; transition: transform .2s, opacity .2s; }
+/* UFOキャッチャー */
+.mg-ufo-btn { touch-action: none; }
 
-/* じゅんばんタッチ */
-.mg-num {
-  aspect-ratio: 1; border: 0; border-radius: 50%; font-size: 1.5rem; font-weight: 800; color: #4a3b47;
-  background: linear-gradient(180deg, var(--c) 50%, #fff 50%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .12), 0 3px 0 rgba(0, 0, 0, .1);
-  text-shadow: 0 0 4px #fff, 0 0 4px #fff;
-}
-.mg-num.done { opacity: .15; transform: scale(.85); transition: transform .15s, opacity .15s; }
-.mg-num.miss { animation: shake .3s; }
-@keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+/* お絵かきロジック */
+.lg-wrap { display: flex; justify-content: center; touch-action: none; }
+.lg { display: grid; grid-template-columns: auto repeat(var(--n), minmax(0, 1fr)); width: 100%; max-width: 380px; touch-action: none; }
+.lg-corner { font-size: .75rem; color: var(--muted); display: flex; align-items: flex-end; justify-content: flex-end; padding: 0 4px 4px 0; font-weight: 800; }
+.lg-cc, .lg-rc { display: flex; color: var(--ink); font-size: .72rem; line-height: 1.15; }
+.lg-cc { flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 3px; }
+.lg-rc { justify-content: flex-end; align-items: center; gap: 4px; padding-right: 5px; }
+.lg-cc:nth-child(odd), .lg-rc { background: #fff6fa; }
+.lg-cc.done, .lg-rc.done { color: #d6c4d0; }
+.lg-cell { aspect-ratio: 1; background: #fff; border-right: 1px solid #ecdce4; border-bottom: 1px solid #ecdce4; position: relative; }
+.lg-cell.bx { border-right: 2px solid #c9a9b8; }
+.lg-cell.by { border-bottom: 2px solid #c9a9b8; }
+.lg-cell.on { background: #4a3b47; }
+.lg-cell.x::after { content: '×'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #b9a6b3; font-weight: 800; }
+.lg-cell.ng::after { color: #f0405f; }
+.lg-cell.shake { animation: shake .3s; }
+.lg.solved .lg-cell.on { background: var(--pc); transition: background .6s; }
+.lg.solved .lg-cell.x::after { opacity: 0; transition: opacity .6s; }
+.lg-tools { display: flex; justify-content: center; gap: 10px; margin: 12px 0 4px; }
+.lg-mode { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 10px 18px; font-weight: 800; }
+.lg-mode.on { background: var(--pink); border-color: var(--pink); color: #fff; }
+.lg-name { font-weight: 800; color: var(--pink-d); font-size: 1.1rem; margin: 6px 0; }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
