@@ -372,7 +372,7 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
       <tr><td>💪 がまん認定</td><td><b>1回につき3枚</b>。だんなさんが認定のときに増減できる</td></tr>
       <tr><td>⏰ 時間でたまる</td><td><b>毎日 0時・6時・12時・18時 に1枚ずつ</b>（1日4枚）。開いていない間も4枚まではたまる。右上に「次は12:00（あと○時間○分）」</td></tr>
       <tr><td>🌞 毎日のログイン</td><td>1日1枚、7日連続目は3枚（月に約38枚）</td></tr>
-      <tr><td>🎮 ミニゲーム</td><td>「あそぶ」タブのゲームで<b>⭐を10こ集めるごとに1枚</b>（1回で⭐0〜3こ・1日3枚まで）</td></tr>
+      <tr><td>🎮 ミニゲーム</td><td>「あそぶ」タブのゲームで<b>⭐を10こ集めるごとに1枚</b>（1回で⭐0〜3こ・1日3枚まで）。進化パズル・UFOキャッチャー・五目ならべ（勝った相手の強さで⭐1〜3）・ポーカー（勝って⭐）・電気イスゲーム（勝って⭐）</td></tr>
       <tr><td>🎁 だんなさんのプレゼント</td><td>好きな枚数</td></tr>
       <tr><td>⭐ レベルアップ</td><td>1枚</td></tr>
       <tr><td>🏅 実績（全27個・1回だけ）</td><td>1〜10枚</td></tr>
@@ -441,7 +441,9 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
 │  ├─ <span class="hl">data.js</span>              <span class="hl">← 当たり・確率・ガチャ券の枚数・キャラの名前と説明・実績</span>
 │  ├─ art.js               <span class="c">キャラのイラスト（60体ぶんの手描きSVG）</span>
 │  ├─ app.js               <span class="c">アプリの動き（抽選・ハンドル・画面）</span>
-│  ├─ mini.js              <span class="c">ミニゲーム（進化パズル・つなげ・UFOキャッチャー・お絵かきロジック）</span>
+│  ├─ mini.js              <span class="c">ミニゲーム（進化パズル・UFOキャッチャー・五目ならべ・ポーカー・電気イス）</span>
+│  ├─ phys.js              <span class="c">ミニゲーム用の物理エンジン</span>
+│  ├─ gomoku.js            <span class="c">五目ならべのAI</span>
 │  ├─ admin.js             <span class="c">管理ページの動き（認定・プレゼント・りれき）</span>
 │  └─ link.js              <span class="c">LINEで送るリンクと「印（電子署名）」</span>
 ├─ sw.js                   <span class="c">オフラインでも動くための仕組み</span>
@@ -488,7 +490,7 @@ const MINI_STARS = 10;           <span class="c">← ミニゲームで⭐何こ
 const MINI_DAILY_MAX = 3;        <span class="c">← ミニゲームでもらえる1日の上限</span></div>
     <div class="note">
       ・<code>id</code>（最初の英字）は変えないでください。すでに当たったチケットが分からなくなります。<br>
-      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v16</code> の数字を1つ上げると、スマホに確実に届きます。<br>
+      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v17</code> の数字を1つ上げると、スマホに確実に届きます。<br>
       ・数字を変えたら、⑦のお金の計算も変わります。Claude に「月の平均はいくらになる？」と聞けば計算できます。
     </div>
     <h3>更新の流れ</h3>

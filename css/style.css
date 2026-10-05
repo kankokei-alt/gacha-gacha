@@ -566,33 +566,70 @@ a.btn { text-decoration: none; text-align: center; display: inline-block; }
 /* 進化パズル: 進化のじゅんばん */
 .mg-evo { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 1px; margin-top: 8px; }
 .mg-evo i { font-style: normal; color: var(--muted); font-size: .7rem; }
-.mg-evo > span .emo svg.art { width: 24px; height: 24px; }
+.mg-evo > span { display: inline-flex; border-radius: 50%; padding: 1px; background: #fff; box-shadow: inset 0 0 0 2px var(--c); }
+.mg-evo > span .emo svg.art { width: 22px; height: 22px; }
+.mg-evo > span:not(.got) { box-shadow: inset 0 0 0 2px #e5d8df; }
 .mg-evo > span:not(.got) .emo { filter: grayscale(1) opacity(.35); }
-.mg-evo > span.got .emo { animation: popin .3s; }
+.mg-evo > span.got { animation: popin .3s; }
 
 /* UFOキャッチャー */
 .mg-ufo-btn { touch-action: none; }
 
-/* お絵かきロジック */
-.lg-wrap { display: flex; justify-content: center; touch-action: none; }
-.lg { display: grid; grid-template-columns: auto repeat(var(--n), minmax(0, 1fr)); width: 100%; max-width: 380px; touch-action: none; }
-.lg-corner { font-size: .75rem; color: var(--muted); display: flex; align-items: flex-end; justify-content: flex-end; padding: 0 4px 4px 0; font-weight: 800; }
-.lg-cc, .lg-rc { display: flex; color: var(--ink); font-size: .72rem; line-height: 1.15; }
-.lg-cc { flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 3px; }
-.lg-rc { justify-content: flex-end; align-items: center; gap: 4px; padding-right: 5px; }
-.lg-cc:nth-child(odd), .lg-rc { background: #fff6fa; }
-.lg-cc.done, .lg-rc.done { color: #d6c4d0; }
-.lg-cell { aspect-ratio: 1; background: #fff; border-right: 1px solid #ecdce4; border-bottom: 1px solid #ecdce4; position: relative; }
-.lg-cell.bx { border-right: 2px solid #c9a9b8; }
-.lg-cell.by { border-bottom: 2px solid #c9a9b8; }
-.lg-cell.on { background: #4a3b47; }
-.lg-cell.x::after { content: '×'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #b9a6b3; font-weight: 800; }
-.lg-cell.ng::after { color: #f0405f; }
-.lg-cell.shake { animation: shake .3s; }
-.lg.solved .lg-cell.on { background: var(--pc); transition: background .6s; }
-.lg.solved .lg-cell.x::after { opacity: 0; transition: opacity .6s; }
-.lg-tools { display: flex; justify-content: center; gap: 10px; margin: 12px 0 4px; }
-.lg-mode { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 10px 18px; font-weight: 800; }
-.lg-mode.on { background: var(--pink); border-color: var(--pink); color: #fff; }
-.lg-name { font-weight: 800; color: var(--pink-d); font-size: 1.1rem; margin: 6px 0; }
+/* 対戦の相手 */
+.mg-foe { display: inline-flex; align-items: center; gap: 4px; }
+.mg-foe .emo svg.art { width: 30px; height: 30px; }
+.mg-me { font-weight: 800; }
+.mg-msg { min-height: 2.6em; margin: 8px 0 0; font-weight: 800; }
+.mg-vs { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 6px; }
+.mg-levels { display: flex; flex-direction: column; gap: 0; }
+.mg-level { display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; color: inherit; width: 100%; }
+.mg-level .emo svg.art { width: 48px; height: 48px; }
+.mg-level span { display: flex; flex-direction: column; }
+.mg-level small { color: var(--muted); }
+
+/* ポーカー */
+.pk { display: flex; flex-direction: column; gap: 8px; }
+.pk-row { display: flex; align-items: center; justify-content: space-between; }
+.pk-chips { font-weight: 800; }
+.pk-hand { display: flex; justify-content: center; gap: 6px; min-height: 76px; }
+.pk-card {
+  width: 52px; height: 74px; border-radius: 8px; background: #fff; border: 2px solid #e5d8df;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; color: #2b2b2b;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .08); transition: transform .15s;
+}
+.pk-card b { font-size: 1.3rem; line-height: 1; }
+.pk-card i { font-style: normal; font-size: 1.3rem; }
+.pk-card.red { color: #e0405f; }
+.pk-card.back { background: repeating-linear-gradient(45deg, #ff8fb8 0 6px, #ffb3cf 6px 12px); border-color: #fff; }
+.pk-hand.me .pk-card { cursor: pointer; }
+.pk-card.sel { transform: translateY(-12px); border-color: var(--pink); box-shadow: 0 0 0 2px var(--pink); }
+.pk-card.sel::after { content: 'かえる'; font-size: .6rem; color: var(--pink-d); font-weight: 800; }
+.pk-pot { text-align: center; display: flex; flex-direction: column; gap: 2px; min-height: 3.2em; font-size: .9rem; }
+.pk-pot span:first-child { font-weight: 800; color: var(--gold); }
+.pk-btns { display: flex; gap: 8px; justify-content: center; min-height: 46px; margin-top: 6px; }
+.pk-btns .btn { flex: 1; }
+
+/* 電気イスゲーム */
+.ec-score { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ec-pl { background: #fff6fa; border-radius: 14px; padding: 6px 8px; display: flex; flex-direction: column; align-items: center; }
+.ec-pl.foe { background: #f1f4ff; }
+.ec-pl .emo svg.art { width: 28px; height: 28px; }
+.ec-pts { font-size: 1.6rem; font-weight: 800; color: var(--pink-d); line-height: 1.1; }
+.ec-pl.foe .ec-pts { color: #3d4fd6; }
+.ec-sh { font-size: .9rem; letter-spacing: 2px; color: #d9c6d1; }
+.ec-ring { position: relative; width: 100%; aspect-ratio: 1; margin: 6px 0; border-radius: 50%; background: radial-gradient(circle, #fff 0 55%, #fff0f6 56% 100%); }
+.ec-ring.shock { animation: zapshake .5s; background: radial-gradient(circle, #fffbd0 0 55%, #ffe66b 56% 100%); }
+@keyframes zapshake { 20% { transform: translate(-6px, 3px); } 40% { transform: translate(6px, -3px); } 60% { transform: translate(-4px, -2px); } 80% { transform: translate(4px, 2px); } }
+.ec-chair {
+  position: absolute; transform: translate(-50%, -50%); width: 16%; aspect-ratio: 1; border: 0; border-radius: 30% 30% 16% 16%;
+  background: linear-gradient(180deg, #8d6e63 0 30%, #a1887f 30%); color: #fff; box-shadow: 0 4px 0 #5d4037;
+  font-weight: 800; font-size: 1.1rem; transition: transform .15s, opacity .3s;
+}
+.ec-chair.pick { box-shadow: 0 4px 0 #5d4037, 0 0 0 4px var(--pink); transform: translate(-50%, -50%) scale(1.12); }
+.ec-chair.trap::after { content: '⚡'; position: absolute; top: -10px; right: -8px; font-size: 1rem; }
+.ec-chair.sit { box-shadow: 0 4px 0 #5d4037, 0 0 0 4px #3d4fd6; }
+.ec-chair.zap { background: #ffd23f; color: #6b4a00; animation: zapshake .4s 2; }
+.ec-chair.gone { opacity: .15; pointer-events: none; }
+.ec-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60%; text-align: center; font-size: .82rem; line-height: 1.5; }
+.ec-center b { font-size: 1rem; }
 @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
