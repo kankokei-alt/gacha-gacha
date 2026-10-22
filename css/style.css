@@ -638,3 +638,27 @@ a.btn { text-decoration: none; text-align: center; display: inline-block; }
 .ec-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60%; text-align: center; font-size: .82rem; line-height: 1.5; }
 .ec-center b { font-size: 1rem; }
 @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+/* ---------- ずかんの本だな ---------- */
+.zk-books { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 10px 0 8px; }
+.zk-book {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 0; padding: 0 0 10px; border-radius: 6px 14px 14px 6px; background: #fff; font: inherit; color: inherit;
+  box-shadow: inset 8px 0 0 var(--c), 0 0 0 2px var(--line), 0 4px 0 var(--line); overflow: hidden;
+}
+.zk-book:active { transform: translateY(2px); }
+.zk-cover {
+  position: relative; width: 100%; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 22%, #fff), color-mix(in srgb, var(--c) 45%, #fff));
+}
+.zk-cover .zk-ic svg.art { width: 64px; height: 64px; }
+.zk-cover > .zk-ic { font-size: 2.6rem; }
+.zk-book b { font-size: .92rem; }
+.zk-book small { color: var(--muted); font-weight: 800; }
+.zk-book .bar { width: 76%; height: 6px; margin: 2px 0 0; }
+.zk-book .bar i { background: var(--c); }
+.zk-book.locked { opacity: .6; --c: #c9c0cc; }
+.zk-stamp { position: absolute; top: 8px; right: 8px; transform: rotate(12deg); font-size: .7rem; font-weight: 800; color: #e8384f; border: 2px solid #e8384f; border-radius: 8px; padding: 1px 6px; background: #fff; }
+.zk-back { margin-bottom: 10px; }
+.zk-open { animation: bookopen .35s ease-out; transform-origin: left center; }
+@keyframes bookopen { from { opacity: 0; transform: perspective(800px) rotateY(-35deg); } }

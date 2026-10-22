@@ -1292,29 +1292,64 @@
 
   /* ---------------- 描画: ずかん ---------------- */
 
+  // ずかんは本だな。本（ガチャごと・実績）を押すと開く
+  let zkBook = null;
+
+  function zukanBook(m) {
+    if (m === 'ach') {
+      const n = ACHIEVEMENTS.filter((a) => S.achievements[a.id]).length;
+      return `<button class="zk-book" data-book="ach" style="--c:#f5b301">
+        <span class="zk-cover"><span class="zk-ic">🏅</span></span>
+        <b>実績</b><small>${n}/${ACHIEVEMENTS.length}</small>
+        <span class="bar"><i style="width:${(n / ACHIEVEMENTS.length) * 100}%"></i></span></button>`;
+    }
+    if (!isUnlocked(m)) {
+      return `<div class="zk-book locked"><span class="zk-cover"><span class="zk-ic">🔒</span></span><b>？？？</b><small>Lv.${m.unlock}で解放</small></div>`;
+    }
+    const g = ownedIn(S, m.items), done = g === m.items.length;
+    return `<button class="zk-book ${done ? 'done' : ''}" data-book="${m.id}" style="--c:${m.color}">
+      <span class="zk-cover">${emo(ITEMS[`${m.id}.${m.sign}`], 'zk-ic')}${done ? '<span class="zk-stamp">コンプ！</span>' : ''}</span>
+      <b>${esc(m.name)}</b><small>${g}/${m.items.length}</small>
+      <span class="bar"><i style="width:${(g / m.items.length) * 100}%"></i></span></button>`;
+  }
+
+  function zukanPage(id) {
+    if (id === 'ach') {
+      return `<div class="zk-sec zk-open" style="--c:#f5b301">
+        <h3>🏅 実績 <small>${ACHIEVEMENTS.filter((a) => S.achievements[a.id]).length}/${ACHIEVEMENTS.length}</small></h3>
+        <div class="ach-grid">${ACHIEVEMENTS.map((a) => {
+          const ok = S.achievements[a.id];
+          return `<div class="ach ${ok ? 'got' : ''}"><span class="ach-icon">${ok ? a.icon : '🔒'}</span>
+            <b>${esc(a.name)}</b><small>${esc(a.desc)}</small><small class="ach-rw">🎫${a.reward}</small></div>`;
+        }).join('')}</div></div>`;
+    }
+    const m = machine(id);
+    const g = ownedIn(S, m.items);
+    return `<div class="zk-sec zk-open" style="--c:${m.color}">
+      <h3>${m.icon} ${esc(m.name)} <small>${g}/${m.items.length}</small></h3>
+      <p class="muted small zk-desc">${esc(m.desc)}${COMPLETE_PRIZES[m.id] ? `<br>🏆 コンプすると <b>${esc(PRIZE_BY_ID[COMPLETE_PRIZES[m.id]].name)}</b>！` : ''}</p>
+      <div class="bar"><i style="width:${(g / m.items.length) * 100}%"></i></div>
+      <div class="zk-grid">${m.items.map((it) => {
+        const n = S.collection[it.id] || 0;
+        const secretHidden = !n && isSecret(it);
+        return `<button class="zk-item r-${it.rarity} ${n ? '' : 'unowned'}" data-id="${it.id}">
+          ${secretHidden ? '<span class="emo">❔</span>' : emo(it)}
+          <span class="zk-no">${it.no}</span>${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
+        </button>`;
+      }).join('')}</div></div>`;
+  }
+
   function renderZukan() {
     const all = allItems();
     const got = ownedIn(S, all);
     const li = levelInfo(S.xp);
     const next = MACHINES.find((m) => m.unlock > li.lv);
-    const html = MACHINES.map((m) => {
-      if (!isUnlocked(m)) {
-        return `<div class="zk-sec locked"><h3>🔒 ？？？</h3><p class="muted">Lv.${m.unlock} で解放されます</p></div>`;
-      }
-      const g = ownedIn(S, m.items);
-      return `<div class="zk-sec" style="--c:${m.color}">
-        <h3>${m.icon} ${esc(m.name)} <small>${g}/${m.items.length}</small></h3>
-        <p class="muted small zk-desc">${esc(m.desc)}${COMPLETE_PRIZES[m.id] ? `<br>🏆 コンプすると <b>${esc(PRIZE_BY_ID[COMPLETE_PRIZES[m.id]].name)}</b>！` : ''}</p>
-        <div class="bar"><i style="width:${(g / m.items.length) * 100}%"></i></div>
-        <div class="zk-grid">${m.items.map((it) => {
-          const n = S.collection[it.id] || 0;
-          const secretHidden = !n && isSecret(it);
-          return `<button class="zk-item r-${it.rarity} ${n ? '' : 'unowned'}" data-id="${it.id}">
-            ${secretHidden ? '<span class="emo">❔</span>' : emo(it)}
-            <span class="zk-no">${it.no}</span>${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
-          </button>`;
-        }).join('')}</div></div>`;
-    }).join('');
+    if (zkBook && zkBook !== 'ach' && !MACHINES.some((m) => m.id === zkBook && isUnlocked(m))) zkBook = null;
+    const body = zkBook
+      ? `<button class="btn mini zk-back" id="zkBack">← 本だなにもどる</button>${zukanPage(zkBook)}`
+      : `<div class="card zk-shelf"><h3>📚 ずかんの本だな</h3>
+          <div class="zk-books">${[...MACHINES.map(zukanBook), zukanBook('ach')].join('')}</div>
+          <p class="muted small">本をタップすると開きます。コンプすると ${MACHINES.map((m) => `${esc(m.name)} 🎫${m.compReward}枚`).join('・')}！</p></div>`;
     $('#tab-zukan').innerHTML = `
       <div class="card level-card">
         <div class="hero-row">
@@ -1328,20 +1363,21 @@
       <div class="card hero">
         <div class="hero-row"><div><small>キャラずかん</small><div class="hero-num">${got}<small> / ${all.length}</small></div></div>
         <div class="ring" style="--p:${(got / all.length) * 100}"><span>${Math.floor((got / all.length) * 100)}%</span></div></div>
-        <p class="muted small">はずれの時に出るキャラがここにたまります。コンプすると ${MACHINES.map((m) => `${esc(m.name)} 🎫${m.compReward}枚`).join('・')}！</p>
       </div>
-      ${html}
-      <div class="card">
-        <h3>🏅 実績 <small class="muted">${ACHIEVEMENTS.filter((a) => S.achievements[a.id]).length}/${ACHIEVEMENTS.length}</small></h3>
-        <div class="ach-grid">${ACHIEVEMENTS.map((a) => {
-          const ok = S.achievements[a.id];
-          return `<div class="ach ${ok ? 'got' : ''}"><span class="ach-icon">${ok ? a.icon : '🔒'}</span>
-            <b>${esc(a.name)}</b><small>${esc(a.desc)}</small><small class="ach-rw">🎫${a.reward}</small></div>`;
-        }).join('')}</div>
-      </div>`;
+      ${body}`;
   }
 
   $('#tab-zukan').addEventListener('click', (e) => {
+    const book = e.target.closest('[data-book]');
+    if (book) {
+      zkBook = book.dataset.book;
+      Sound.tap();
+      renderZukan();
+      $('.zk-open', $('#tab-zukan'))?.scrollIntoView({ block: 'start' });
+      window.scrollBy({ top: -70 });
+      return;
+    }
+    if (e.target.id === 'zkBack') { zkBook = null; renderZukan(); return; }
     const b = e.target.closest('.zk-item');
     if (!b) return;
     const it = ITEMS[b.dataset.id];
@@ -1558,6 +1594,7 @@
   let currentTab = 'gacha';
   function switchTab(t) {
     if (t !== 'mini') stopGame();
+    if (t === 'zukan' && currentTab !== 'zukan') zkBook = null;
     currentTab = t;
     $$('.tabbar button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${t}`));
