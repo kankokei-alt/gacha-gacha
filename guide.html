@@ -363,6 +363,8 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
       <tr><td>🍝 カフェ・ランチ</td><td>休日のお昼ごはんを、カフェやお店で食べられる券</td><td class="n">4,000円</td><td class="n">0.15%</td><td>約670回に1回</td></tr>
       <tr><td>🍣 お寿司</td><td>回転寿司に行ける券</td><td class="n">5,000円</td><td class="n">0.08%</td><td>1250回に1回</td></tr>
       <tr><td>🍷 豪華ディナー</td><td>ふたりで8,000円のディナー。ガチャモン全40種をコンプしたときに1回だけもらえる（ガチャでは出ない）</td><td class="n">8,000円</td><td class="n">—</td><td>コンプ時</td></tr>
+      <tr><td>🍽️ ディナー</td><td>ふたりで5,000円のディナー。ガチャモン2 全80種をコンプしたときに1回だけもらえる（ガチャでは出ない）</td><td class="n">5,000円</td><td class="n">—</td><td>コンプ時</td></tr>
+      <tr><td>🪙 お小遣い</td><td>500円玉貯金箱から500円玉を1枚。家族20人をコンプしたときに1回だけもらえる（ガチャでは出ない）</td><td class="n">500円</td><td class="n">—</td><td>コンプ時</td></tr>
     </table></div>
     <div class="note green"><b>📏 上限はありません</b>：確率で「平均するとこのくらい」になるように調整しているだけです。運が良い月は多め、悪い月は少なめになります。</div>
 
@@ -383,7 +385,8 @@ footer { text-align: center; color: var(--muted); font-size: .85rem; }
     <p class="small" style="margin:0 0 6px">どちらのガチャも最初から遊べます。キャラはすべてオリジナルの手描きイラストです。</p>
     <div class="tw"><table>
       <tr><th>ガチャ</th><th>中身</th><th>ノーマル</th><th>レア</th><th>スーパー</th><th>伝説</th></tr>
-      <tr><td>🐾 ガチャモン</td><td>どこかで見たような、ふしぎな生きもの 40種（No.001〜040・タイプつき）</td><td class="n">21種</td><td class="n">11種</td><td class="n">5種</td><td class="n">3種</td></tr>
+      <tr><td>🐾 ガチャモン</td><td>国分寺地方の、どこかで見たような、ふしぎな生きもの 40種（No.001〜040・タイプつき）</td><td class="n">21種</td><td class="n">11種</td><td class="n">5種</td><td class="n">3種</td></tr>
+      <tr><td>🌸 ガチャモン2</td><td>東村山地方の新しいガチャモン 80種（No.001〜080）。伝説の三聖獣と、幻の1体（伝説よりさらに出にくい）</td><td class="n">44種</td><td class="n">22種</td><td class="n">10種</td><td class="n">3種＋幻1種</td></tr>
       <tr><td>👪 家族</td><td>ひろとはるの家族 20人</td><td class="n">12人</td><td class="n">4人</td><td class="n">2人</td><td class="n">2人</td></tr>
     </table></div>
     <p class="small" style="margin:8px 0 6px">はずれの中での出やすさ（ガチャモン／家族）：</p>
@@ -490,7 +493,7 @@ const MINI_STARS = 10;           <span class="c">← ミニゲームで⭐何こ
 const MINI_DAILY_MAX = 3;        <span class="c">← ミニゲームでもらえる1日の上限</span></div>
     <div class="note">
       ・<code>id</code>（最初の英字）は変えないでください。すでに当たったチケットが分からなくなります。<br>
-      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v17</code> の数字を1つ上げると、スマホに確実に届きます。<br>
+      ・変更したら <code>sw.js</code> の1行目付近の <code>pocket-gacha-v18</code> の数字を1つ上げると、スマホに確実に届きます。<br>
       ・数字を変えたら、⑦のお金の計算も変わります。Claude に「月の平均はいくらになる？」と聞けば計算できます。
     </div>
     <h3>更新の流れ</h3>

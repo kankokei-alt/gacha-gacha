@@ -161,6 +161,7 @@
         R: [523, 659, 784, 1047],
         SR: [523, 659, 784, 1047, 1319, 1568],
         SE: [392, 523, 659, 784, 1047, 1319, 1568, 2093],
+        MY: [523, 659, 784, 1047, 1319, 1568, 2093, 1568, 2093, 2637],
         PRIZE: [523, 659, 784, 1047, 784, 1047, 1319, 1568, 2093],
       };
       (seqs[r] || seqs.N).forEach((f, i) => this.tone(f, 0.25, { type: 'triangle', vol: 0.12, at: i * 0.08 }));
@@ -198,7 +199,9 @@
 
   // キャラのイラスト（js/art.js）
   const emo = (it, cls = '') => `<span class="emo ${cls}">${Art.render(it)}</span>`;
-  const noLabel = (it) => `No.${String(it.no).padStart(it.machine === 'pachimon' ? 3 : 2, '0')}`;
+  const noLabel = (it) => `No.${String(it.no).padStart(it.machine.startsWith('pachimon') ? 3 : 2, '0')}`;
+  // 伝説と幻は、手に入れるまで名前も姿もひみつ
+  const isSecret = (it) => it.rarity === 'SE' || it.rarity === 'MY';
   const typeBadges = (it) => it.types.map((t) => `<span class="tbadge" style="--t:${TYPES[t] || '#999'}">${t}</span>`).join('');
 
   /* ---------------- モーダル ---------------- */
@@ -532,6 +535,7 @@
   function capColorFor(p) {
     if (p.kind === 'prize') return p.prize === 'sushi' ? 'rainbow' : 'gold';
     const it = ITEMS[p.item];
+    if (it.rarity === 'MY') return 'rainbow';
     if (it.rarity === 'SE' && Math.random() < 0.6) return 'rainbow';
     if (it.rarity === 'SR' && Math.random() < 0.5) return 'gold';
     if (Math.random() < 0.04) return 'gold'; // フェイント
@@ -756,7 +760,7 @@
     return { isNew };
   }
 
-  // ガチャモンを全種類あつめたら、特別なご褒美（豪華ディナー）を1回だけプレゼント
+  // ガチャを全種類あつめたら、特別なご褒美（ガチャモン: 豪華ディナー、家族: お小遣い）を1回だけプレゼント
   function checkCompletePrize(machineId) {
     const prizeId = COMPLETE_PRIZES[machineId];
     const m = machine(machineId);
@@ -787,7 +791,7 @@
   function showCapsule({ peek, level: lvl, cap: capColor }, onReveal) {
     overlayOpen = true;
     const cap = $('#bigCap');
-    const big = lvl === 'SR' || lvl === 'SE' || lvl === 'PRIZE';
+    const big = lvl === 'SR' || lvl === 'SE' || lvl === 'MY' || lvl === 'PRIZE';
     const taps = lvl === 'N' ? (Math.random() < 0.25 ? 2 : 1) : lvl === 'R' ? (Math.random() < 0.5 ? 2 : 1) : 3;
     cap.className = 'big-cap';
     cap.style.setProperty('--cap', capColor === 'gold' ? 'linear-gradient(90deg,#ffe680,#ffbf00,#ffdf6b)'
@@ -847,7 +851,7 @@
     const m = machine(it.machine);
     $('#rays').className = `rays on r-${r}`;
     Sound.fanfare(r);
-    if (isNew) confetti(r === 'SE' ? 140 : r === 'SR' ? 90 : r === 'R' ? 40 : 20);
+    if (isNew) confetti(r === 'MY' ? 240 : r === 'SE' ? 140 : r === 'SR' ? 90 : r === 'R' ? 40 : 20);
     $('#result').innerHTML = `
       <div class="res-card r-${r}">
         <span class="badge r-${r}">${RARITY[r].label}</span>
@@ -954,7 +958,7 @@
       <p class="lu-head">🧸 はずれのときのキャラ（ずかんに登録）</p>
       <div class="lineup-grid">${m.items.map((it) => {
         const p = ((RARITY[it.rarity].weight / totalW) * missRate * 100).toFixed(1);
-        const show = it.rarity !== 'SE' || owned(it);
+        const show = !isSecret(it) || owned(it);
         return `<div class="lu ${owned(it) ? '' : 'unowned'}">
           <span class="lu-emo">${show ? emo(it) : '❔'}</span>
           <span class="lu-name">${show ? esc(it.name) : '？？？'}</span>
@@ -1304,7 +1308,7 @@
         <div class="bar"><i style="width:${(g / m.items.length) * 100}%"></i></div>
         <div class="zk-grid">${m.items.map((it) => {
           const n = S.collection[it.id] || 0;
-          const secretHidden = !n && it.rarity === 'SE';
+          const secretHidden = !n && isSecret(it);
           return `<button class="zk-item r-${it.rarity} ${n ? '' : 'unowned'}" data-id="${it.id}">
             ${secretHidden ? '<span class="emo">❔</span>' : emo(it)}
             <span class="zk-no">${it.no}</span>${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
@@ -1342,7 +1346,7 @@
     if (!b) return;
     const it = ITEMS[b.dataset.id];
     const n = S.collection[it.id] || 0;
-    const hidden = !n && it.rarity === 'SE';
+    const hidden = !n && isSecret(it);
     openModal(`
       <div class="detail r-${it.rarity}">
         <span class="badge r-${it.rarity}">${RARITY[it.rarity].label}</span>
