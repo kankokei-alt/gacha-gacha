@@ -894,5 +894,7 @@ const Art = (() => {
     return `<svg viewBox="0 0 100 100" class="art" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${f(u)}</svg>`;
   }
 
-  return { render, has: (id) => !!A[id] };
+  // セカンドシリーズ（js/art2.js）からも同じ部品で描けるように
+  const parts = { O, S, N, eye, dot, happy, sleepy, cheek, smile, omega, open, fangs, brows, shadow, sparkle, star, bow, leaf, flame, mir, glow, cloud, sweat, halo };
+  return { render, has: (id) => !!A[id], add: (id, f) => { A[id] = f; }, parts };
 })();
