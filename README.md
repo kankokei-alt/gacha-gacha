@@ -95,6 +95,7 @@ index.html             画面の骨組み
 css/style.css          デザイン
 js/data.js             当たり・確率・キャラの名前と説明・実績の定義
 js/art.js              キャラのイラスト（手描きSVG）
+js/art2.js             ガチャモン2のイラスト（立体的な塗り）
 js/app.js              ゲーム本体
 js/link.js             LINEで送るリンクと電子署名
 js/mini.js             ミニゲーム（進化パズル・UFOキャッチャー・五目ならべ・ポーカー・電気イス）
