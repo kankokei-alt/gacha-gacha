@@ -209,7 +209,7 @@ const Mini = (() => {
     world.seg(W + 10, -200, W + 10, H, { r: 10 });
     world.seg(-20, FLOOR + 10, W + 20, FLOOR + 10, { r: 10, mu: 0.7 });
     world.seg(CHUTE + 5, PART, CHUTE + 5, FLOOR, { r: 5, mu: 0.4 }); // 取り出し口のしきり（アクリル板）
-    const pool = MACHINES.flatMap((m) => m.items).filter((it) => it.rarity !== 'SE');
+    const pool = MACHINES.flatMap((m) => m.items).filter((it) => it.rarity !== 'SE' && it.rarity !== 'MY');
     pick(UFO_CAPS, pool).forEach((it, i) => world.ball(CHUTE + 70 + Math.random() * (W - CHUTE - 100), FLOOR - 30 - i * 26, 23 + Math.random() * 5,
       { id: it.id, c: rand(CAPSULE_COLORS), density: 0.8, e: 0.3, mu: 0.55 }));
     for (let i = 0; i < 360; i++) world.step(); // 先に積もらせておく
@@ -832,7 +832,7 @@ const Mini = (() => {
     },
     {
       id: 'ufo', icon: '🕹️', name: 'UFOキャッチャー', play: playUfo, best: (v) => `${v}こ`, better: (a, b) => a > b,
-      needs: MACHINES.flatMap((m) => m.items).filter((it) => it.rarity !== 'SE').map((it) => it.id),
+      needs: MACHINES.flatMap((m) => m.items).filter((it) => it.rarity !== 'SE' && it.rarity !== 'MY').map((it) => it.id),
       desc: `${UFO_TRIES}回のうちにカプセルをGET！ 1こで⭐・2こで⭐⭐・3こで⭐⭐⭐`,
     },
     {
