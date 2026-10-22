@@ -14,6 +14,7 @@ const PRIZES = [
   { id: 'sushi', name: 'お寿司チケット', emoji: '🍣', value: 5000, rate: 0.0008, desc: '回転寿司に行ける券' },
   // ガチャでは出ない特別なご褒美（ガチャモン全40種をコンプしたときに1回だけもらえる）
   { id: 'dinner', name: '豪華ディナーチケット', emoji: '🍷', value: 8000, rate: 0, special: true, desc: 'ふたりで8,000円の豪華ディナーに行ける券（ガチャモン全40種コンプのご褒美）' },
+  { id: 'allowance', name: 'お小遣いチケット', emoji: '🪙', value: 500, rate: 0, special: true, desc: '500円玉貯金箱から、500円玉を1枚お小遣いにもらえる券（家族20人コンプのご褒美）' },
 ];
 // 本物のガチャを1回がまんして認定されたときにもらえるガチャ券（管理ページで増減できる）
 const GAMAN_TICKETS = 3;
@@ -136,7 +137,7 @@ MACHINES.forEach((m) => {
 const PRIZE_BY_ID = Object.fromEntries(PRIZES.map((p) => [p.id, p]));
 const GACHA_PRIZES = PRIZES.filter((p) => !p.special);
 // コンプでもらえる特別なご褒美
-const COMPLETE_PRIZES = { pachimon: 'dinner' };
+const COMPLETE_PRIZES = { pachimon: 'dinner', family: 'allowance' };
 
 const CAPSULE_COLORS = ['#ff6b8b', '#ffa94d', '#ffe066', '#7ed98a', '#5cc8ff', '#a98bff', '#ff8fd1', '#4dd4c6'];
 

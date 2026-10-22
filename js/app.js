@@ -756,7 +756,7 @@
     return { isNew };
   }
 
-  // ガチャモンを全種類あつめたら、特別なご褒美（豪華ディナー）を1回だけプレゼント
+  // ガチャを全種類あつめたら、特別なご褒美（ガチャモン: 豪華ディナー、家族: お小遣い）を1回だけプレゼント
   function checkCompletePrize(machineId) {
     const prizeId = COMPLETE_PRIZES[machineId];
     const m = machine(machineId);
